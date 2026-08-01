@@ -56,13 +56,44 @@
       <img id="scene2-tablestuff" src="assets/scene2/scene2_tablestuff.png" alt="" draggable="false" />
       <!-- Layer 2: poster -->
       <img id="scene2-poster"     src="assets/scene2/scene2_poster.png"     alt="" draggable="false" />
-      <!-- Layer 3: phone (top, clickable via hit div) -->
-      <img id="scene2-phone"      src="assets/scene2/scene2_phone.png"      alt="Phone" draggable="false" />
+      <!-- Layer 3: phone on desk (clickable via hit div) -->
+      <img id="scene2-phone"      src="assets/scene2/phone_off.png"         alt="Phone" draggable="false" />
 
       <!-- Invisible hit area over the phone -->
       <div id="hit-phone"></div>
 
     </div><!-- /scene2-screen -->
+
+
+    <!-- ── PHONE SCENE ──────────────────────── -->
+    <div id="phone-screen" class="screen hidden">
+
+      <!-- Layer 0: table background (2360×1680, same aspect as canvas) -->
+      <img id="phone-bg-table" src="assets/scene2/scene2_table.png"           alt="" draggable="false" />
+      <!-- Layer 1: poster_phone (692×492 full-canvas, beneath phone UI) -->
+      <img id="phone-poster"   src="assets/scene2/poster_phone.png"           alt="" draggable="false" />
+      <!-- Layer 2: phone states (only one visible at a time) -->
+      <img id="phone-dialing"  src="assets/scene2/phone_dialing.png"          alt="" draggable="false" />
+      <img id="phone-calling"  src="assets/scene2/phone_calling.png"          alt="" draggable="false" />
+      <img id="phone-ringing"  src="assets/scene2/phone_ringing.png"          alt="" draggable="false" />
+      <!-- Layer 3: button overlays — 692×492 full-canvas, pixel-detected -->
+      <img class="phone-btn-img" id="pbtn-1"    src="assets/scene2/phone_buttons/1.png"       alt="" draggable="false" />
+      <img class="phone-btn-img" id="pbtn-2"    src="assets/scene2/phone_buttons/2.png"       alt="" draggable="false" />
+      <img class="phone-btn-img" id="pbtn-3"    src="assets/scene2/phone_buttons/3.png"       alt="" draggable="false" />
+      <img class="phone-btn-img" id="pbtn-4"    src="assets/scene2/phone_buttons/4.png"       alt="" draggable="false" />
+      <img class="phone-btn-img" id="pbtn-5"    src="assets/scene2/phone_buttons/5.png"       alt="" draggable="false" />
+      <img class="phone-btn-img" id="pbtn-6"    src="assets/scene2/phone_buttons/6.png"       alt="" draggable="false" />
+      <img class="phone-btn-img" id="pbtn-7"    src="assets/scene2/phone_buttons/7.png"       alt="" draggable="false" />
+      <img class="phone-btn-img" id="pbtn-8"    src="assets/scene2/phone_buttons/8.png"       alt="" draggable="false" />
+      <img class="phone-btn-img" id="pbtn-9"    src="assets/scene2/phone_buttons/9.png"       alt="" draggable="false" />
+      <img class="phone-btn-img" id="pbtn-0"    src="assets/scene2/phone_buttons/0.png"       alt="" draggable="false" />
+      <img class="phone-btn-img" id="pbtn-star" src="assets/scene2/phone_buttons/astrk.png"   alt="" draggable="false" />
+      <img class="phone-btn-img" id="pbtn-hash" src="assets/scene2/phone_buttons/hashtag.png" alt="" draggable="false" />
+      <img class="phone-btn-img" id="pbtn-call" src="assets/scene2/phone_buttons/callbtn.png" alt="" draggable="false" />
+      <!-- Number display — sits over the white display area of phone_dialing -->
+      <div id="phone-display"></div>
+
+    </div><!-- /phone-screen -->
 
 
     <!-- ── SCENE TRANSITION OVERLAY ──────────── -->
@@ -205,6 +236,14 @@
   <audio id="sfx-angry-meow"  preload="auto"><source src="assets/sfx/angry_meow.mp3"  type="audio/mpeg" /></audio>
   <audio id="sfx-paperslam"   preload="auto"><source src="assets/sfx/paperslam.mp3"   type="audio/mpeg" /></audio>
   <audio id="sfx-angry-meow2" preload="auto"><source src="assets/sfx/angry_meow2.mp3" type="audio/mpeg" /></audio>
+
+  <!-- ── PHONE SFX ─────────────────────────── -->
+  <audio id="sfx-phonesfx1"  preload="auto"><source src="assets/sfx/phone/phonesfx1.mp3"  type="audio/mpeg" /></audio>
+  <audio id="sfx-phonesfx2"  preload="auto"><source src="assets/sfx/phone/phonesfx2.mp3"  type="audio/mpeg" /></audio>
+  <audio id="sfx-phonesfx3"  preload="auto"><source src="assets/sfx/phone/phonesfx3.mp3"  type="audio/mpeg" /></audio>
+  <audio id="sfx-phonesfx4"  preload="auto"><source src="assets/sfx/phone/phonesfx4.mp3"  type="audio/mpeg" /></audio>
+  <audio id="sfx-phonesfx5"  preload="auto"><source src="assets/sfx/phone/phonesfx5.mp3"  type="audio/mpeg" /></audio>
+  <audio id="sfx-phone-ring" preload="auto"><source src="assets/sfx/phone/phone_ring.mp3"  type="audio/mpeg" /></audio>
 
   <!-- ── SVG colourblind filter definitions (hidden) ── -->
   <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">

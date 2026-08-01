@@ -73,13 +73,17 @@ class PixelButton {
     this.ready = true;
   }
 
-  /** Returns true if the mouse (in viewport coords) is over a visible pixel */
-  hitTest(clientX, clientY, containerRect) {
+  /** Returns true if the mouse (in viewport coords) is over a visible pixel.
+   *  xShift / yShift compensate for a CSS transform applied to the image:
+   *  when translateX(9.10%) shifts the visual rendering right by ~63px,
+   *  the user clicks at canvas_x+63, so we subtract 63 to get back to the
+   *  pixel coordinate where the button is drawn in the original PNG.       */
+  hitTest(clientX, clientY, containerRect, xShift = 0, yShift = 0) {
     if (!this.ready) return false;
     const scaleX = CANVAS_W / containerRect.width;
     const scaleY = CANVAS_H / containerRect.height;
-    const ix = Math.floor((clientX - containerRect.left)  * scaleX);
-    const iy = Math.floor((clientY - containerRect.top)   * scaleY);
+    const ix = Math.floor((clientX - containerRect.left)  * scaleX) - xShift;
+    const iy = Math.floor((clientY - containerRect.top)   * scaleY) - yShift;
     if (ix < 0 || iy < 0 || ix >= CANVAS_W || iy >= CANVAS_H) return false;
     const alpha = this.ctx.getImageData(ix, iy, 1, 1).data[3];
     return alpha > 30;
@@ -651,22 +655,194 @@ document.addEventListener('keydown', e => {
 });
 
 /* ─────────────────────────────────────────────
-   SCENE 2 — desk scene
+   SCENE 2 — desk scene  (phone on table)
 ───────────────────────────────────────────── */
-const phoneHit  = document.getElementById('hit-phone');
-const phoneImg  = document.getElementById('scene2-phone');
+const phoneHit = document.getElementById('hit-phone');
+const phoneImg = document.getElementById('scene2-phone');
 
 phoneHit.addEventListener('mouseenter', () => phoneImg.classList.add('btn-hover'));
 phoneHit.addEventListener('mouseleave', () => {
   phoneImg.classList.remove('btn-hover');
   phoneImg.classList.remove('btn-active');
 });
-phoneHit.addEventListener('mousedown',  () => phoneImg.classList.add('btn-active'));
-phoneHit.addEventListener('mouseup',    () => phoneImg.classList.remove('btn-active'));
+phoneHit.addEventListener('mousedown', () => phoneImg.classList.add('btn-active'));
+phoneHit.addEventListener('mouseup',   () => phoneImg.classList.remove('btn-active'));
 
 phoneHit.addEventListener('click', () => {
   playUiSfx('click');
-  fadeToScene('menu-screen');
+  resetPhoneScene();
+  fadeToScene('phone-screen');
+});
+
+/* ─────────────────────────────────────────────
+   PHONE SCENE — dial-pad state machine
+───────────────────────────────────────────── */
+const CORRECT_NUMBER  = '01167023154';   // 011-6702-3154
+const PHONE_SFX_COUNT = 5;
+const MAX_PHONE_INPUT = 11;              // length of correct number
+
+let phoneState       = 'dialing';        // 'dialing' | 'calling' | 'ringing'
+let phoneInput       = '';
+let lastPhoneSfxIdx  = -1;
+let phoneRingTimer   = null;
+
+// ── Button definitions ─────────────────────
+const PHONE_BTN_DEFS = [
+  { key:'1', id:'pbtn-1'    },
+  { key:'2', id:'pbtn-2'    },
+  { key:'3', id:'pbtn-3'    },
+  { key:'4', id:'pbtn-4'    },
+  { key:'5', id:'pbtn-5'    },
+  { key:'6', id:'pbtn-6'    },
+  { key:'7', id:'pbtn-7'    },
+  { key:'8', id:'pbtn-8'    },
+  { key:'9', id:'pbtn-9'    },
+  { key:'backspace', id:'pbtn-star' },
+  { key:'0', id:'pbtn-0'    },
+  { key:'#', id:'pbtn-hash' },
+  { key:'call', id:'pbtn-call' },
+];
+
+// Build PixelButton instances for every phone button
+const phonePixelBtns = PHONE_BTN_DEFS.map(def => {
+  const img = document.getElementById(def.id);
+  const pb  = new PixelButton(img, def.key);
+  return pb;
+});
+
+// ── Helpers ────────────────────────────────
+function formatPhoneDisplay(digits) {
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) return digits.slice(0,3) + '-' + digits.slice(3);
+  return digits.slice(0,3) + '-' + digits.slice(3,7) + '-' + digits.slice(7);
+}
+
+function updatePhoneDisplay() {
+  const el = document.getElementById('phone-display');
+  if (el) el.textContent = formatPhoneDisplay(phoneInput);
+}
+
+function setPhoneState(state) {
+  phoneState = state;
+  const dialEl   = document.getElementById('phone-dialing');
+  const callEl   = document.getElementById('phone-calling');
+  const ringEl   = document.getElementById('phone-ringing');
+  const dispEl   = document.getElementById('phone-display');
+  const inDialing = state === 'dialing';
+
+  dialEl.style.display = state === 'dialing'  ? '' : 'none';
+  callEl.style.display  = state === 'calling'  ? '' : 'none';
+  ringEl.style.display  = state === 'ringing'  ? '' : 'none';
+
+  document.querySelectorAll('.phone-btn-img').forEach(el => {
+    el.style.display = inDialing ? '' : 'none';
+  });
+  if (dispEl) dispEl.style.display = inDialing ? '' : 'none';
+}
+
+function resetPhoneScene() {
+  if (phoneRingTimer) { clearTimeout(phoneRingTimer); phoneRingTimer = null; }
+  phoneInput      = '';
+  lastPhoneSfxIdx = -1;
+  setPhoneState('dialing');
+  updatePhoneDisplay();
+  // Silence any lingering ring
+  const ringSfx = document.getElementById('sfx-phone-ring');
+  if (ringSfx) { ringSfx.pause(); ringSfx.currentTime = 0; }
+}
+
+function playPhoneKeySfx() {
+  let idx;
+  do { idx = Math.floor(Math.random() * PHONE_SFX_COUNT) + 1; }
+  while (idx === lastPhoneSfxIdx && PHONE_SFX_COUNT > 1);
+  lastPhoneSfxIdx = idx;
+  const el = document.getElementById(`sfx-phonesfx${idx}`);
+  if (el) { el.currentTime = 0; el.play().catch(() => {}); }
+}
+
+function handlePhoneKey(key) {
+  if (phoneState !== 'dialing') return;
+
+  if (key === 'call') {
+    if (phoneInput !== CORRECT_NUMBER) return;   // wrong number — no response
+    // Correct! → calling → ringing → fade to black when ring ends
+    setPhoneState('calling');
+    phoneRingTimer = setTimeout(() => {
+      setPhoneState('ringing');
+      const ringSfx = document.getElementById('sfx-phone-ring');
+      if (ringSfx) {
+        ringSfx.currentTime = 0;
+        ringSfx.play().catch(() => {});
+        // Fade to black once the ring sound finishes
+        ringSfx.addEventListener('ended', () => {
+          document.getElementById('scene-transition').classList.add('fading');
+        }, { once: true });
+      }
+    }, 1600);
+    return;
+  }
+
+  // Backspace key (mapped to * button)
+  if (key === 'backspace') {
+    if (phoneInput.length === 0) return;
+    phoneInput = phoneInput.slice(0, -1);
+    updatePhoneDisplay();
+    return;
+  }
+
+  // Digit / symbol key
+  if (phoneInput.length >= MAX_PHONE_INPUT) return;
+  phoneInput += key;
+  updatePhoneDisplay();
+  playPhoneKeySfx();
+}
+
+// ── Phone-screen mouse/click routing ──────
+const phoneScreen = document.getElementById('phone-screen');
+
+// X shift of 63px corrects the translateX(9.10%) CSS offset on .phone-btn-img
+const PHONE_BTN_XSHIFT = 63;
+
+phoneScreen.addEventListener('mousemove', e => {
+  if (phoneState !== 'dialing') {
+    phoneScreen.style.cursor = '';
+    return;
+  }
+  const rect  = phoneScreen.getBoundingClientRect();
+  let   found = null;
+  for (const pb of phonePixelBtns) {
+    if (pb.hitTest(e.clientX, e.clientY, rect, PHONE_BTN_XSHIFT)) { found = pb; break; }
+  }
+  for (const pb of phonePixelBtns) pb.setHover(pb === found);
+  phoneScreen.style.cursor = found ? 'pointer' : '';
+});
+
+phoneScreen.addEventListener('mouseleave', () => {
+  for (const pb of phonePixelBtns) { pb.setHover(false); pb.setActive(false); }
+  phoneScreen.style.cursor = '';
+});
+
+phoneScreen.addEventListener('mousedown', e => {
+  if (phoneState !== 'dialing') return;
+  const rect = phoneScreen.getBoundingClientRect();
+  for (const pb of phonePixelBtns) {
+    pb.setActive(pb.hitTest(e.clientX, e.clientY, rect, PHONE_BTN_XSHIFT));
+  }
+});
+
+phoneScreen.addEventListener('mouseup', () => {
+  for (const pb of phonePixelBtns) pb.setActive(false);
+});
+
+phoneScreen.addEventListener('click', e => {
+  if (phoneState !== 'dialing') return;
+  const rect = phoneScreen.getBoundingClientRect();
+  for (const pb of phonePixelBtns) {
+    if (pb.hitTest(e.clientX, e.clientY, rect, PHONE_BTN_XSHIFT)) {
+      handlePhoneKey(pb.action);
+      break;
+    }
+  }
 });
 
 /* ─────────────────────────────────────────────
@@ -680,6 +856,7 @@ const scene2Music = document.getElementById('scene2-music');
 const SCREEN_MUSIC = {
   'menu-screen':   menuMusic,
   'scene2-screen': scene2Music,
+  'phone-screen':  scene2Music,   // same track — music continues uninterrupted
 };
 
 // Track which screen's music should be playing so the autoplay
@@ -712,11 +889,15 @@ function stopAllMusic() {
 }
 
 // Full showScreen — handles both DOM switching and per-screen music.
-// Declared last so it supersedes the early stub at the top of the file.
+// Skips restarting the track if the same one is already playing
+// (e.g. scene2 → phone-screen both use scene2Music).
 function showScreen(id) { // eslint-disable-line no-redeclare
   _setActiveScreen(id);
-  stopAllMusic();
-  if (SCREEN_MUSIC[id]) playTrack(SCREEN_MUSIC[id]);
+  const newTrack = SCREEN_MUSIC[id] || null;
+  if (newTrack !== _currentTrack) {
+    stopAllMusic();
+    if (newTrack) playTrack(newTrack);
+  }
 }
 
 // Start menu music immediately on load

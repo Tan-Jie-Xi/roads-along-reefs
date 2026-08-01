@@ -467,8 +467,7 @@ html, body {
 
 /* ═══════════════════════════════════════════════
    SCENE 2 — desk / table scene
-   All 4 layers are 2360×1680 full-canvas frames
-   stacked directly inside #scene2-screen.
+   All layers are 2360×1680 full-canvas frames.
 ═══════════════════════════════════════════════ */
 #scene2-screen img {
   position: absolute;
@@ -500,6 +499,60 @@ html, body {
   height: 78%;
 }
 
+/* ═══════════════════════════════════════════════
+   PHONE SCENE  (dial-pad interface)
+   Full-canvas layers: table (2360×1680),
+   poster_phone + phone states + buttons (692×492).
+═══════════════════════════════════════════════ */
+#phone-screen img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+}
+
+#phone-bg-table  { z-index: 0; }
+#phone-poster    { z-index: 1; }
+#phone-dialing   { z-index: 2; }
+#phone-calling   { z-index: 2; }
+#phone-ringing   { z-index: 2; }
+
+/* Button overlays sit above the phone UI.
+   The overlay PNGs are aligned 63px left of where the buttons appear
+   in phone_dialing.png, so we shift them right by 63/692 ≈ 9.10%.    */
+.phone-btn-img {
+  z-index: 3;
+  transition: filter 0.12s ease;
+  transform: translateX(9.10%);
+}
+.phone-btn-img.btn-hover  { filter: brightness(0.68); }
+.phone-btn-img.btn-active { filter: brightness(0.45); }
+
+/* Typed-number display — sits in the white screen area above the keypad.
+   phone_dialing.png white area starts ~y=60/492=12%; buttons start ~y=121/492=25%.
+   We centre the display in the gap: top≈12%, height≈11%.               */
+#phone-display {
+  position: absolute;
+  z-index: 10;
+  left:   32%;
+  top:    8%;
+  width:  36%;
+  height: 11%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(0.9rem, 3vw, 1.4rem);
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: 0.15em;
+  pointer-events: none;
+  user-select: none;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
@@ -511,3 +564,64 @@ html, body {
 .panel::-webkit-scrollbar { width: 6px; }
 .panel::-webkit-scrollbar-track { background: #f0dbb0; border-radius: 6px; }
 .panel::-webkit-scrollbar-thumb { background: #d4a843; border-radius: 6px; }
+
+/* ═══════════════════════════════════════════════
+   TEXT SIZE — body classes applied by JS
+═══════════════════════════════════════════════ */
+body.text-small  .panel { font-size: 12px; }
+body.text-small  .panel-title              { font-size: 1.35rem; }
+body.text-small  .setting-row label:first-child { font-size: 0.78rem; }
+body.text-small  .tab-btn                  { font-size: 0.7rem;  }
+body.text-small  .footer-btn               { font-size: 0.78rem; }
+body.text-small  .range-val                { font-size: 0.74rem; }
+body.text-small  .slot-number              { font-size: 0.85rem; }
+body.text-small  .slot-info                { font-size: 0.76rem; }
+body.text-small  .slot-btn                 { font-size: 0.7rem;  }
+
+body.text-large  .panel { font-size: 17px; }
+body.text-large  .panel-title              { font-size: 2rem;    }
+body.text-large  .setting-row label:first-child { font-size: 1.1rem;  }
+body.text-large  .tab-btn                  { font-size: 0.95rem; }
+body.text-large  .footer-btn               { font-size: 1rem;    }
+body.text-large  .range-val                { font-size: 0.95rem; }
+body.text-large  .slot-number              { font-size: 1.1rem;  }
+body.text-large  .slot-info                { font-size: 1rem;    }
+body.text-large  .slot-btn                 { font-size: 0.9rem;  }
+
+/* ═══════════════════════════════════════════════
+   HIGH CONTRAST UI — body.high-contrast
+═══════════════════════════════════════════════ */
+body.high-contrast .modal-overlay          { background: rgba(0,0,0,0.92) !important; }
+body.high-contrast .panel                  { background: #111 !important; border: 3px solid #fff !important; }
+body.high-contrast .panel-title            { color: #ffe44d !important; }
+body.high-contrast .close-btn              { background: #fff !important; color: #000 !important; }
+body.high-contrast .close-btn:hover        { background: #ddd !important; }
+
+body.high-contrast .tab-bar .tab-btn       { background: #111 !important; color: #fff !important; border-color: #888 !important; }
+body.high-contrast .tab-bar .tab-btn:hover { background: #2a2a2a !important; }
+body.high-contrast .tab-bar .tab-btn.active{ background: #fff !important; color: #000 !important; border-color: #fff !important; }
+
+body.high-contrast .setting-row            { border-bottom-color: #444 !important; }
+body.high-contrast .setting-row label:first-child { color: #fff !important; }
+body.high-contrast .range-val              { color: #ffe44d !important; }
+body.high-contrast input[type="range"]     { accent-color: #fff; }
+
+body.high-contrast .styled-select          { background: #111 !important; color: #fff !important; border-color: #fff !important; }
+body.high-contrast .slider-toggle          { background: #555 !important; }
+body.high-contrast .toggle-switch input:checked + .slider-toggle { background: #0f0 !important; }
+body.high-contrast .slider-toggle::before  { background: #fff !important; }
+
+body.high-contrast .footer-btn             { background: #111 !important; color: #fff !important; border-color: #fff !important; }
+body.high-contrast .footer-btn:hover       { background: #2a2a2a !important; }
+body.high-contrast .footer-btn.primary     { background: #fff !important; color: #000 !important; border-color: #fff !important; }
+body.high-contrast .footer-btn.primary:hover { background: #ccc !important; }
+
+body.high-contrast .save-slot             { background: #111 !important; border-color: #fff !important; }
+body.high-contrast .save-slot:hover       { background: #1e1e1e !important; }
+body.high-contrast .slot-number           { color: #ffe44d !important; }
+body.high-contrast .slot-info             { color: #ccc !important; }
+body.high-contrast .slot-btn              { background: #111 !important; color: #fff !important; border-color: #888 !important; }
+body.high-contrast .slot-btn:hover:not(:disabled) { background: #fff !important; color: #000 !important; }
+body.high-contrast .slot-btn.danger       { border-color: #f88 !important; color: #f88 !important; }
+body.high-contrast .slot-btn.danger:hover:not(:disabled) { background: #f88 !important; color: #000 !important; }
+body.high-contrast .tab-note              { color: #aaa !important; }
