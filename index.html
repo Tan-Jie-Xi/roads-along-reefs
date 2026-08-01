@@ -96,11 +96,54 @@
     </div><!-- /phone-screen -->
 
 
+    <!-- ── TRUCK SELECTION SCREEN ──────────────── -->
+    <div id="truck-select-screen" class="screen hidden">
+      <img id="ts-bg"           src="assets/truck_selection/background.png"     alt="" draggable="false" />
+      <img id="ts-eco-truck"    src="assets/truck_selection/eco_truck.png"      alt="" draggable="false" />
+      <img id="ts-diesel-truck" src="assets/truck_selection/diesel_truck.png"   alt="" draggable="false" />
+      <img id="ts-name-img"     src="assets/truck_selection/ecotruck_name.png"  alt="" draggable="false" />
+      <img id="ts-clipboard"    src="assets/truck_selection/clipboard.png"      alt="" draggable="false" />
+
+      <!-- Text overlays -->
+      <div id="ts-truck-label">Electric</div>
+      <div id="ts-clipboard-text"></div>
+
+      <!-- Hit areas: text label (select) + arrow (switch) -->
+      <div id="hit-ts-text"></div>
+      <div id="hit-ts-arrow"></div>
+    </div><!-- /truck-select-screen -->
+
+
+    <!-- ── DIALOGUE OVERLAY ─────────────────────
+         Appears above screens (z 600), below the
+         scene-transition fade (z 1000).
+    ──────────────────────────────────────────── -->
+    <div id="dialogue-overlay" class="hidden">
+      <!-- Aspect-ratio wrapper so % positions work -->
+      <div id="dialogue-box-wrap">
+        <img id="dialogue-box-img" src="assets/tutorials/dialogue_box.png" alt="" draggable="false" />
+        <div id="dialogue-name">Sales Rep.</div>
+        <div id="dialogue-text"></div>
+      </div>
+    </div>
+
     <!-- ── SCENE TRANSITION OVERLAY ──────────── -->
     <!-- Sits above every screen; fades to black between scenes -->
     <div id="scene-transition"></div>
 
   </div><!-- /game-container -->
+
+
+  <!-- ═══════════════════════════════════════════
+       TRUCK CONFIRM MODAL
+  ═══════════════════════════════════════════ -->
+  <div id="truck-confirm-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="panel" style="max-width:460px;">
+      <h2 class="panel-title" id="truck-confirm-title">Are you sure?</h2>
+      <p id="truck-confirm-msg" style="text-align:center;margin:4px 0 18px;color:#5a3a10;line-height:1.55;font-size:0.95rem;"></p>
+      <div class="panel-footer" id="truck-confirm-btns"></div>
+    </div>
+  </div><!-- /truck-confirm-modal -->
 
 
   <!-- ═══════════════════════════════════════════
@@ -274,6 +317,11 @@
       </filter>
     </defs>
   </svg>
+
+  <!-- ── CUSTOM CURSOR (body-level so it works over modals too) ── -->
+  <div id="custom-cursor" aria-hidden="true">
+    <img id="cursor-img" src="assets/pointer/neutral.png" alt="" draggable="false" />
+  </div>
 
   <script src="script.js"></script>
 </body>

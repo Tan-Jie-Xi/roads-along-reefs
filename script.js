@@ -773,9 +773,9 @@ function handlePhoneKey(key) {
       if (ringSfx) {
         ringSfx.currentTime = 0;
         ringSfx.play().catch(() => {});
-        // Fade to black once the ring sound finishes
+        // Show dialogue once the ring sound finishes
         ringSfx.addEventListener('ended', () => {
-          document.getElementById('scene-transition').classList.add('fading');
+          showDialogue();
         }, { once: true });
       }
     }, 1600);
@@ -846,6 +846,77 @@ phoneScreen.addEventListener('click', e => {
 });
 
 /* ─────────────────────────────────────────────
+   DIALOGUE SYSTEM — phone-call cutscene
+   Triggered after the ring sound ends.
+   Click the box to skip/advance; after the last
+   line the scene fades to black.
+───────────────────────────────────────────── */
+const DIALOGUE_LINES = [
+  "Hello! FoodTruck Company here! If you are calling this number, I assume that you have seen our food truck advertisement.",
+  "Now, I'll spare you the boring formalities. Let's get straight to picking out a truck for your dream business!",
+];
+
+const TYPEWRITER_MS = 32;   // ms between characters
+
+let _dlgLineIdx  = 0;
+let _dlgCharIdx  = 0;
+let _dlgTyping   = false;
+let _dlgTimer    = null;
+
+function showDialogue() {
+  _dlgLineIdx = 0;
+  const overlay = document.getElementById('dialogue-overlay');
+  overlay.classList.remove('hidden');
+  // Clicking anywhere on the box advances / skips
+  document.getElementById('dialogue-box-wrap')
+    .addEventListener('click', advanceDialogue);
+  // Cursor should show as "point" over the box — tell the screen element
+  phoneScreen.style.cursor = 'pointer';
+  _typeDialogueLine(DIALOGUE_LINES[0]);
+}
+
+function _typeDialogueLine(text) {
+  const el = document.getElementById('dialogue-text');
+  el.textContent = '';
+  _dlgCharIdx = 0;
+  _dlgTyping  = true;
+
+  (function tick() {
+    if (_dlgCharIdx < text.length) {
+      el.textContent += text[_dlgCharIdx++];
+      _dlgTimer = setTimeout(tick, TYPEWRITER_MS);
+    } else {
+      _dlgTyping = false;
+      _dlgTimer  = null;
+    }
+  }());
+}
+
+function advanceDialogue() {
+  if (_dlgTyping) {
+    // Skip to end of current line instantly
+    clearTimeout(_dlgTimer);
+    _dlgTimer  = null;
+    _dlgTyping = false;
+    document.getElementById('dialogue-text').textContent =
+      DIALOGUE_LINES[_dlgLineIdx];
+    return;
+  }
+
+  _dlgLineIdx++;
+  if (_dlgLineIdx < DIALOGUE_LINES.length) {
+    _typeDialogueLine(DIALOGUE_LINES[_dlgLineIdx]);
+  } else {
+    // All lines done — hide box, fade to truck selection
+    document.getElementById('dialogue-overlay').classList.add('hidden');
+    document.getElementById('dialogue-box-wrap')
+      .removeEventListener('click', advanceDialogue);
+    phoneScreen.style.cursor = '';
+    fadeToScene('truck-select-screen', initTruckSelection);
+  }
+}
+
+/* ─────────────────────────────────────────────
    AUDIO — music + SFX
 ───────────────────────────────────────────── */
 
@@ -854,9 +925,10 @@ const menuMusic   = document.getElementById('menu-music');
 const scene2Music = document.getElementById('scene2-music');
 
 const SCREEN_MUSIC = {
-  'menu-screen':   menuMusic,
-  'scene2-screen': scene2Music,
-  'phone-screen':  scene2Music,   // same track — music continues uninterrupted
+  'menu-screen':        menuMusic,
+  'scene2-screen':      scene2Music,
+  'phone-screen':       scene2Music,
+  'truck-select-screen': scene2Music,  // continues from phone scene uninterrupted
 };
 
 // Track which screen's music should be playing so the autoplay
@@ -916,6 +988,294 @@ function playSfx(id) {
   el.currentTime = 0;
   el.play().catch(() => {});
 }
+
+/* ─────────────────────────────────────────────
+   CUSTOM CURSOR
+   neutral → default, point → hovering something
+   clickable, grab → briefly on mousedown.
+───────────────────────────────────────────── */
+(function () {
+  const cursorEl      = document.getElementById('custom-cursor');
+  const cursorImg     = document.getElementById('cursor-img');
+  const gameContainer = document.getElementById('game-container');
+
+  const CURSORS = {
+    neutral: 'assets/pointer/neutral.png',
+    point:   'assets/pointer/point.png',
+    grab:    'assets/pointer/grab.png',
+  };
+
+  // Preload all three so swaps are instant
+  Object.values(CURSORS).forEach(src => { const img = new Image(); img.src = src; });
+
+  let _state     = 'neutral';
+  let _grabTimer = null;
+  let _lastX     = 0;
+  let _lastY     = 0;
+
+  function setState(s) {
+    if (_state === s) return;
+    _state = s;
+    cursorImg.src = CURSORS[s];
+  }
+
+  /** Returns true if the element (or any ancestor) would normally show a pointer. */
+  function isPointerTarget(el) {
+    // cursor:none !important is forced everywhere, so getComputedStyle always
+    // returns 'none'. Check element types, classes, and id patterns instead.
+    while (el && el !== document.documentElement) {
+      const tag = el.tagName;
+      if (tag === 'BUTTON' || tag === 'A' || tag === 'SELECT' ||
+          tag === 'INPUT'  || tag === 'LABEL') return true;
+      const cl = el.classList;
+      if (cl.contains('menu-hit')    || cl.contains('close-btn')  ||
+          cl.contains('tab-btn')     || cl.contains('footer-btn') ||
+          cl.contains('save-slot')   || cl.contains('slot-btn')   ||
+          cl.contains('toggle-switch')) return true;
+      // Catch all invisible hit-area divs (hit-phone, hit-truck, hit-title, …)
+      if (el.id && el.id.startsWith('hit-')) return true;
+      // Dialogue box is clickable when visible
+      if (el.id === 'dialogue-box-wrap') return true;
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  /** Returns true if any modal overlay is currently visible. */
+  function isModalOpen() {
+    return !!document.querySelector('.modal-overlay:not(.hidden)');
+  }
+
+  /** True when the mouse is inside the game container rect. */
+  function isOverGame(cx, cy) {
+    const r = gameContainer.getBoundingClientRect();
+    return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+  }
+
+  /** Decide neutral vs point for the current mouse position. */
+  function resolveHoverState(clientX, clientY) {
+    // Pixel buttons set an inline style on the active screen element
+    const activeScreen = document.querySelector('.screen.active');
+    if (activeScreen && activeScreen.style.cursor === 'pointer') return 'point';
+
+    const el = document.elementFromPoint(clientX, clientY);
+    if (el && isPointerTarget(el)) return 'point';
+
+    return 'neutral';
+  }
+
+  document.addEventListener('mousemove', e => {
+    _lastX = e.clientX;
+    _lastY = e.clientY;
+
+    // Show cursor only over the game window or an open modal
+    if (!isOverGame(e.clientX, e.clientY) && !isModalOpen()) {
+      cursorEl.style.display = 'none';
+      return;
+    }
+
+    // Position: fixed element — clientX/Y map directly to viewport coords
+    cursorEl.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+    cursorEl.style.display   = 'block';
+
+    if (_grabTimer) return;
+    setState(resolveHoverState(e.clientX, e.clientY));
+  });
+
+  document.addEventListener('mouseleave', () => {
+    cursorEl.style.display = 'none';
+  });
+
+  // Flash grab on any click inside game or modal
+  document.addEventListener('mousedown', e => {
+    if (!isOverGame(e.clientX, e.clientY) && !isModalOpen()) return;
+    if (_grabTimer) clearTimeout(_grabTimer);
+    setState('grab');
+    _grabTimer = setTimeout(() => {
+      _grabTimer = null;
+      setState(resolveHoverState(_lastX, _lastY));
+    }, 140);
+  });
+}());
+
+/* ─────────────────────────────────────────────
+   TRUCK SELECTION SCENE
+───────────────────────────────────────────── */
+const TS_TEXTS = {
+  eco:    'Electric vehicles eliminate loud generator noise and toxic exhaust fumes, enabling food trucks to operate quietly and cleanly right next to customers.',
+  diesel: 'Diesel-powered food trucks emit high levels of toxic particulate matter and create constant loud engine noise, which can drive customers away and further pollute the environment.',
+};
+
+let _tsTruck     = 'eco';   // 'eco' | 'diesel'
+let _tsSwitching = false;
+let _tsTyping    = false;
+let _tsTimer     = null;
+let _tsCharIdx   = 0;
+
+// ── Hit-area position tables ────────────────
+const TS_HITS = {
+  eco:    { textLeft: '4%',  textWidth: '40%', arrowLeft: '44%', arrowWidth: '6%'  },
+  diesel: { textLeft: '5%',  textWidth: '40%', arrowLeft: '1%',  arrowWidth: '5%'  },
+};
+
+function _tsUpdateHits() {
+  const h = TS_HITS[_tsTruck];
+  const th = document.getElementById('hit-ts-text');
+  const ah = document.getElementById('hit-ts-arrow');
+  th.style.left  = h.textLeft;   th.style.width  = h.textWidth;
+  ah.style.left  = h.arrowLeft;  ah.style.width  = h.arrowWidth;
+}
+
+// ── Clipboard typewriter ─────────────────────
+function _tsType(text) {
+  if (_tsTimer) { clearTimeout(_tsTimer); _tsTimer = null; }
+  _tsTyping  = false;
+  _tsCharIdx = 0;
+  const el = document.getElementById('ts-clipboard-text');
+  el.textContent = '';
+  _tsTyping = true;
+  (function tick() {
+    if (_tsCharIdx < text.length) {
+      el.textContent += text[_tsCharIdx++];
+      _tsTimer = setTimeout(tick, 28);
+    } else {
+      _tsTyping = false;
+      _tsTimer  = null;
+    }
+  }());
+}
+
+// ── Slide animation ──────────────────────────
+function tsSwitchTruck() {
+  if (_tsSwitching) return;
+  _tsSwitching = true;
+
+  const ecoEl    = document.getElementById('ts-eco-truck');
+  const dieselEl = document.getElementById('ts-diesel-truck');
+  const nameImg  = document.getElementById('ts-name-img');
+  const label    = document.getElementById('ts-truck-label');
+
+  const toDiesel = _tsTruck === 'eco';
+  const outEl    = toDiesel ? ecoEl    : dieselEl;
+  const inEl     = toDiesel ? dieselEl : ecoEl;
+  const exitX    = toDiesel ? '-30%'   : '30%';
+  const enterX   = toDiesel ? '30%'    : '-30%';
+
+  // Slide out current truck
+  outEl.style.transform = `translateX(${exitX})`;
+  outEl.style.opacity   = '0';
+
+  // Place incoming truck off-screen instantly (no transition)
+  inEl.style.transition = 'none';
+  inEl.style.transform  = `translateX(${enterX})`;
+  inEl.style.opacity    = '0';
+  inEl.style.display    = 'block';   // must be explicit — CSS default is 'none' for diesel
+  // Force reflow, then re-enable transition and animate in
+  inEl.getBoundingClientRect();
+  inEl.style.transition = '';
+  inEl.style.transform  = '';
+  inEl.style.opacity    = '1';
+
+  setTimeout(() => {
+    outEl.style.display   = 'none';
+    outEl.style.transform = '';
+    outEl.style.opacity   = '1';
+    _tsTruck = toDiesel ? 'diesel' : 'eco';
+    nameImg.src             = `assets/truck_selection/${_tsTruck === 'eco' ? 'eco' : 'diesel'}truck_name.png`;
+    label.textContent       = _tsTruck === 'eco' ? 'Electric' : 'Diesel';
+    _tsUpdateHits();
+    _tsType(TS_TEXTS[_tsTruck]);
+    _tsSwitching = false;
+  }, 450);
+}
+
+// ── Initialise the scene ─────────────────────
+function initTruckSelection() {
+  _tsTruck     = 'eco';
+  _tsSwitching = false;
+
+  const ecoEl    = document.getElementById('ts-eco-truck');
+  const dieselEl = document.getElementById('ts-diesel-truck');
+
+  // Reset eco truck to visible, diesel hidden
+  [ecoEl, dieselEl].forEach(el => {
+    el.style.transition = 'none';
+    el.style.transform  = '';
+    el.style.opacity    = '1';
+  });
+  ecoEl.style.display    = '';
+  dieselEl.style.display = 'none';
+  // Re-enable transitions after reset
+  ecoEl.getBoundingClientRect();
+  ecoEl.style.transition    = '';
+  dieselEl.style.transition = '';
+
+  document.getElementById('ts-name-img').src      = 'assets/truck_selection/ecotruck_name.png';
+  document.getElementById('ts-truck-label').textContent = 'Electric';
+  _tsUpdateHits();
+  _tsType(TS_TEXTS.eco);
+}
+
+// ── Select / confirm truck ───────────────────
+function tsSelectTruck() {
+  playUiSfx('click');
+  const modal = document.getElementById('truck-confirm-modal');
+  const msg   = document.getElementById('truck-confirm-msg');
+  const btns  = document.getElementById('truck-confirm-btns');
+
+  btns.innerHTML = '';
+  btns.style.justifyContent = '';
+
+  if (_tsTruck === 'eco') {
+    msg.textContent = "Great choice! You've helped reduce your food truck's carbon footprint!";
+
+    const noBtn  = document.createElement('button');
+    noBtn.className  = 'footer-btn';
+    noBtn.textContent = 'No';
+    noBtn.addEventListener('click', () => { playUiSfx('close'); hideModal('truck-confirm-modal'); });
+
+    const yesBtn = document.createElement('button');
+    yesBtn.className  = 'footer-btn primary';
+    yesBtn.textContent = 'Yes';
+    yesBtn.addEventListener('click', () => {
+      playUiSfx('click');
+      hideModal('truck-confirm-modal');
+      // Fade to black — end of selection
+      const overlay = document.getElementById('scene-transition');
+      overlay.classList.add('fading');
+    });
+
+    btns.append(noBtn, yesBtn);
+  } else {
+    msg.textContent = "Hmm, that doesn't seem like a good option. Why not try choosing the more eco-friendly truck?";
+    btns.style.justifyContent = 'center';
+
+    const okBtn = document.createElement('button');
+    okBtn.className   = 'footer-btn primary';
+    okBtn.textContent = 'OK';
+    okBtn.addEventListener('click', () => { playUiSfx('close'); hideModal('truck-confirm-modal'); });
+
+    btns.append(okBtn);
+  }
+
+  showModal('truck-confirm-modal');
+}
+
+// ── Event listeners ──────────────────────────
+document.getElementById('hit-ts-text').addEventListener('click',  () => tsSelectTruck());
+document.getElementById('hit-ts-arrow').addEventListener('click', () => { playUiSfx('click'); tsSwitchTruck(); });
+
+// Hover feedback — brighten/dim the name image
+(function () {
+  const nameImg = document.getElementById('ts-name-img');
+  ['hit-ts-text', 'hit-ts-arrow'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('mouseenter', () => { nameImg.style.filter = 'brightness(0.82)'; });
+    el.addEventListener('mouseleave', () => { nameImg.style.filter = ''; });
+    el.addEventListener('mousedown',  () => { nameImg.style.filter = 'brightness(0.6)'; });
+    el.addEventListener('mouseup',    () => { nameImg.style.filter = 'brightness(0.82)'; });
+  });
+}());
 
 /* ─────────────────────────────────────────────
    INITIALISE

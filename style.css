@@ -40,6 +40,38 @@ html, body {
   box-shadow: 0 8px 48px rgba(0, 0, 0, 0.55);
 }
 
+/* Hide the OS cursor over every game surface including modals */
+#game-container,
+#game-container *,
+.modal-overlay,
+.modal-overlay * {
+  cursor: none !important;
+}
+
+/* ═══════════════════════════════════════════════
+   CUSTOM CURSOR
+   Fixed to the viewport (body-level element) so
+   it works over both the game container and the
+   modal overlays. pointer-events:none so it never
+   blocks clicks.
+═══════════════════════════════════════════════ */
+#custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 999999;
+  will-change: transform;
+  display: none;
+}
+
+#custom-cursor img {
+  display: block;
+  height: 52px;
+  width: auto;
+  user-select: none;
+}
+
 /* ═══════════════════════════════════════════════
    SCREEN MANAGEMENT
    Screens are absolute inside #game-container,
@@ -567,6 +599,143 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════
+   DIALOGUE OVERLAY
+   Anchored to the bottom of #game-container,
+   scaled to 100 % canvas width. Text divs are
+   positioned as percentages of the 1007×492
+   dialogue_box.png so they stay aligned at any
+   canvas size.
+═══════════════════════════════════════════════ */
+#dialogue-overlay {
+  position: absolute;
+  inset: 0;          /* replaces left/right/bottom */
+  z-index: 600;
+  pointer-events: none;
+}
+
+#dialogue-overlay.hidden { display: none; }
+
+/* Aspect-ratio wrapper: padding-bottom = 492/1007 × 100 % */
+#dialogue-box-wrap {
+  position: absolute;
+  left: 50%;
+  top: 72%;          /* adjust this until it looks right */
+  transform: translate(-50%, -50%) scale(0.7);
+  width: 100%;
+  padding-bottom: 48.86%;
+  pointer-events: auto;
+}
+
+#dialogue-box-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Name tag — small rounded box top-left of the image */
+#dialogue-name {
+  position: absolute;
+  left:   0%;
+  top:     0%;
+  width:  33.1%;
+  height: 18.9%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'RoadsAlongReefs', sans-serif;
+  font-size: 200%;
+  color: #4a2f00;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Dialogue body — to the right of the cat avatar */
+#dialogue-text {
+  position: absolute;
+  left:   30%;
+  top:    35%;
+  width:  65%;
+  height: 66%;
+  font-family: 'RoadsAlongReefs', sans-serif;
+  font-size: 200%;
+  color: #3a2200;
+  line-height: 1.45;
+  word-break: break-word;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ═══════════════════════════════════════════════
+   TRUCK SELECTION SCREEN
+═══════════════════════════════════════════════ */
+#truck-select-screen img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+}
+
+#ts-bg           { z-index: 0; }
+#ts-eco-truck    { z-index: 1; transition: transform 0.42s ease, opacity 0.42s ease; }
+#ts-diesel-truck { z-index: 1; display: none; transition: transform 0.42s ease, opacity 0.42s ease; }
+#ts-name-img     { z-index: 2; }
+#ts-clipboard    { z-index: 3; }
+
+/* Label text overlaid on the white banner rectangle */
+#ts-truck-label {
+  position: absolute;
+  z-index: 4;
+  left: 10%;
+  top: 86%;
+  width: 38%;
+  height: 10%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'RoadsAlongReefs', sans-serif;
+  font-size: 200%;
+  color: #3a2200;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Clipboard typewriter text — positioned over the paper area */
+#ts-clipboard-text {
+  position: absolute;
+  z-index: 4;
+  left: 73%;
+  top: 40%;
+  width: 25%;
+  height: 66%;
+  font-family: 'RoadsAlongReefs', sans-serif;
+  font-size: 130%;
+  color: #3a2200;
+  line-height: 1.55;
+  word-break: break-word;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Hit areas */
+#hit-ts-text, #hit-ts-arrow {
+  position: absolute;
+  z-index: 10;
+  cursor: pointer;
+  top: 82%;
+  height: 12%;
+}
+#hit-ts-text  { left: 4%;  width: 40%; }
+#hit-ts-arrow { left: 44%; width: 6%;  }
+
+/* ═══════════════════════════════════════════════
    SCROLLBAR STYLING (panel)
 ═══════════════════════════════════════════════ */
 .panel::-webkit-scrollbar { width: 6px; }
@@ -633,3 +802,4 @@ body.high-contrast .slot-btn:hover:not(:disabled) { background: #fff !important;
 body.high-contrast .slot-btn.danger       { border-color: #f88 !important; color: #f88 !important; }
 body.high-contrast .slot-btn.danger:hover:not(:disabled) { background: #f88 !important; color: #000 !important; }
 body.high-contrast .tab-note              { color: #aaa !important; }
+ 
