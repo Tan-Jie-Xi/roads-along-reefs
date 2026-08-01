@@ -25,12 +25,9 @@
       <img id="settingsbtn" src="assets/titlescreen/settingsbtn.png" alt="Settings"          /><!-- z5 -->
       <img id="loadbtn"     src="assets/titlescreen/loadbtn.png"     alt="Save/Load"         /><!-- z6 -->
 
-      <!-- Invisible hit areas — z-index 10, sit above all images -->
-      <div id="hit-truck"    class="menu-hit" data-target="menu-truck"  data-action="truck"></div>
-      <div id="hit-title"    class="menu-hit" data-target="menu-title"  data-action="title"></div>
-      <div id="hit-play"     class="menu-hit" data-target="playbtn"     data-action="play"></div>
-      <div id="hit-settings" class="menu-hit" data-target="settingsbtn" data-action="settings"></div>
-      <div id="hit-load"     class="menu-hit" data-target="loadbtn"     data-action="load"></div>
+      <!-- hit-play / hit-settings / hit-load replaced by pixel-colour detection in script.js -->
+      <div id="hit-truck" class="menu-hit" data-target="menu-truck" data-action="truck"></div>
+      <div id="hit-title" class="menu-hit" data-target="menu-title" data-action="title"></div>
 
     </div><!-- /menu-screen -->
 
@@ -80,115 +77,37 @@
   ═══════════════════════════════════════════ -->
   <div id="settings-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <div class="panel">
-      <h2 class="panel-title" id="settings-title">⚙️ Settings</h2>
+      <h2 class="panel-title" id="settings-title" data-i18n="settings-title">⚙️ Settings</h2>
       <button class="close-btn" id="settings-close" aria-label="Close settings">✕</button>
 
       <!-- Tab bar -->
       <div class="tab-bar" role="tablist">
-        <button class="tab-btn active" role="tab" data-tab="audio">🔊 Audio</button>
-        <button class="tab-btn"        role="tab" data-tab="controls">🎮 Controls</button>
-        <button class="tab-btn"        role="tab" data-tab="graphics">🖥️ Graphics</button>
-        <button class="tab-btn"        role="tab" data-tab="accessibility">♿ Access.</button>
-        <button class="tab-btn"        role="tab" data-tab="game">🐱 Game</button>
+        <button class="tab-btn active" role="tab" data-tab="audio"         data-i18n="tab-audio">🔊 Audio</button>
+        <button class="tab-btn"        role="tab" data-tab="accessibility" data-i18n="tab-accessibility">♿ Access.</button>
+        <button class="tab-btn"        role="tab" data-tab="game"          data-i18n="tab-game">🐱 Game</button>
       </div>
 
       <!-- AUDIO -->
       <div class="tab-content" id="tab-audio" role="tabpanel">
         <div class="setting-row">
-          <label for="master-vol">Master Volume</label>
+          <label for="master-vol" data-i18n="lbl-master-vol">Master Volume</label>
           <input type="range" id="master-vol" min="0" max="100" value="80" />
           <span class="range-val" id="master-vol-val">80</span>
         </div>
         <div class="setting-row">
-          <label for="music-vol">Music</label>
+          <label for="music-vol" data-i18n="lbl-music-vol">Music</label>
           <input type="range" id="music-vol" min="0" max="100" value="70" />
           <span class="range-val" id="music-vol-val">70</span>
         </div>
         <div class="setting-row">
-          <label for="sfx-vol">Sound Effects</label>
+          <label for="sfx-vol" data-i18n="lbl-sfx-vol">Sound Effects</label>
           <input type="range" id="sfx-vol" min="0" max="100" value="90" />
           <span class="range-val" id="sfx-vol-val">90</span>
         </div>
         <div class="setting-row">
-          <label for="ambient-vol">Ambience</label>
-          <input type="range" id="ambient-vol" min="0" max="100" value="50" />
-          <span class="range-val" id="ambient-vol-val">50</span>
-        </div>
-        <div class="setting-row">
-          <label for="mute-toggle">Mute All</label>
+          <label for="mute-toggle" data-i18n="lbl-mute-toggle">Mute All</label>
           <label class="toggle-switch">
             <input type="checkbox" id="mute-toggle" />
-            <span class="slider-toggle"></span>
-          </label>
-        </div>
-      </div>
-
-      <!-- CONTROLS -->
-      <div class="tab-content hidden" id="tab-controls" role="tabpanel">
-        <p class="tab-note">Click a key chip to rebind it.</p>
-        <div class="setting-row">
-          <label>Move Up</label>
-          <span class="keybind" data-action="up">W</span>
-        </div>
-        <div class="setting-row">
-          <label>Move Down</label>
-          <span class="keybind" data-action="down">S</span>
-        </div>
-        <div class="setting-row">
-          <label>Move Left</label>
-          <span class="keybind" data-action="left">A</span>
-        </div>
-        <div class="setting-row">
-          <label>Move Right</label>
-          <span class="keybind" data-action="right">D</span>
-        </div>
-        <div class="setting-row">
-          <label>Interact / Serve</label>
-          <span class="keybind" data-action="interact">E</span>
-        </div>
-        <div class="setting-row">
-          <label>Pause</label>
-          <span class="keybind" data-action="pause">Esc</span>
-        </div>
-        <div class="setting-row">
-          <label>Skip Cutscene</label>
-          <span class="keybind" data-action="skip">Space</span>
-        </div>
-      </div>
-
-      <!-- GRAPHICS / DISPLAY -->
-      <div class="tab-content hidden" id="tab-graphics" role="tabpanel">
-        <div class="setting-row">
-          <label for="resolution">Resolution</label>
-          <select class="styled-select" id="resolution">
-            <option value="1920x1080">1920 × 1080</option>
-            <option value="1280x720" selected>1280 × 720</option>
-            <option value="854x480">854 × 480</option>
-          </select>
-        </div>
-        <div class="setting-row">
-          <label for="fullscreen-toggle">Fullscreen</label>
-          <label class="toggle-switch">
-            <input type="checkbox" id="fullscreen-toggle" />
-            <span class="slider-toggle"></span>
-          </label>
-        </div>
-        <div class="setting-row">
-          <label for="vsync-toggle">V-Sync</label>
-          <label class="toggle-switch">
-            <input type="checkbox" id="vsync-toggle" checked />
-            <span class="slider-toggle"></span>
-          </label>
-        </div>
-        <div class="setting-row">
-          <label for="brightness">Brightness</label>
-          <input type="range" id="brightness" min="50" max="150" value="100" />
-          <span class="range-val" id="brightness-val">100</span>
-        </div>
-        <div class="setting-row">
-          <label for="particle-toggle">Particles / Effects</label>
-          <label class="toggle-switch">
-            <input type="checkbox" id="particle-toggle" checked />
             <span class="slider-toggle"></span>
           </label>
         </div>
@@ -197,41 +116,27 @@
       <!-- ACCESSIBILITY -->
       <div class="tab-content hidden" id="tab-accessibility" role="tabpanel">
         <div class="setting-row">
-          <label for="text-size">Text Size</label>
+          <label for="text-size" data-i18n="lbl-text-size">Text Size</label>
           <select class="styled-select" id="text-size">
-            <option value="small">Small</option>
-            <option value="medium" selected>Medium</option>
-            <option value="large">Large</option>
+            <option value="small"  data-i18n-opt="opt-small">Small</option>
+            <option value="medium" data-i18n-opt="opt-medium" selected>Medium</option>
+            <option value="large"  data-i18n-opt="opt-large">Large</option>
           </select>
         </div>
         <div class="setting-row">
-          <label for="colorblind">Colour-Blind Mode</label>
+          <label for="colorblind" data-i18n="lbl-colorblind">Colour-Blind Mode</label>
           <select class="styled-select" id="colorblind">
-            <option value="none" selected>None</option>
-            <option value="protanopia">Protanopia</option>
-            <option value="deuteranopia">Deuteranopia</option>
-            <option value="tritanopia">Tritanopia</option>
-            <option value="achromatopsia">Greyscale</option>
+            <option value="none"          data-i18n-opt="opt-cb-none"   selected>None</option>
+            <option value="protanopia"    data-i18n-opt="opt-cb-prot">Protanopia</option>
+            <option value="deuteranopia"  data-i18n-opt="opt-cb-deut">Deuteranopia</option>
+            <option value="tritanopia"    data-i18n-opt="opt-cb-trit">Tritanopia</option>
+            <option value="achromatopsia" data-i18n-opt="opt-cb-grey">Greyscale</option>
           </select>
         </div>
         <div class="setting-row">
-          <label for="reduce-motion">Reduce Motion</label>
-          <label class="toggle-switch">
-            <input type="checkbox" id="reduce-motion" />
-            <span class="slider-toggle"></span>
-          </label>
-        </div>
-        <div class="setting-row">
-          <label for="high-contrast">High Contrast UI</label>
+          <label for="high-contrast" data-i18n="lbl-high-contrast">High Contrast UI</label>
           <label class="toggle-switch">
             <input type="checkbox" id="high-contrast" />
-            <span class="slider-toggle"></span>
-          </label>
-        </div>
-        <div class="setting-row">
-          <label for="screen-reader">Screen-Reader Hints</label>
-          <label class="toggle-switch">
-            <input type="checkbox" id="screen-reader" />
             <span class="slider-toggle"></span>
           </label>
         </div>
@@ -240,7 +145,7 @@
       <!-- GAME OPTIONS -->
       <div class="tab-content hidden" id="tab-game" role="tabpanel">
         <div class="setting-row">
-          <label for="lang">Language</label>
+          <label for="lang" data-i18n="lbl-lang">Language</label>
           <select class="styled-select" id="lang">
             <option value="en" selected>English</option>
             <option value="ms">Bahasa Melayu</option>
@@ -249,39 +154,17 @@
           </select>
         </div>
         <div class="setting-row">
-          <label for="difficulty">Difficulty</label>
-          <select class="styled-select" id="difficulty">
-            <option value="easy">Easy</option>
-            <option value="normal" selected>Normal</option>
-            <option value="hard">Hard</option>
-          </select>
-        </div>
-        <div class="setting-row">
-          <label for="tutorial-toggle">Show Tutorials</label>
-          <label class="toggle-switch">
-            <input type="checkbox" id="tutorial-toggle" checked />
-            <span class="slider-toggle"></span>
-          </label>
-        </div>
-        <div class="setting-row">
-          <label for="autosave-toggle">Auto-Save</label>
+          <label for="autosave-toggle" data-i18n="lbl-autosave">Auto-Save</label>
           <label class="toggle-switch">
             <input type="checkbox" id="autosave-toggle" checked />
-            <span class="slider-toggle"></span>
-          </label>
-        </div>
-        <div class="setting-row">
-          <label for="sdg-tips">SDG Tips in-game</label>
-          <label class="toggle-switch">
-            <input type="checkbox" id="sdg-tips" checked />
             <span class="slider-toggle"></span>
           </label>
         </div>
       </div>
 
       <div class="panel-footer">
-        <button class="footer-btn" id="settings-reset">Reset Defaults</button>
-        <button class="footer-btn primary" id="settings-apply">Apply</button>
+        <button class="footer-btn" id="settings-reset" data-i18n="btn-reset">Reset Defaults</button>
+        <button class="footer-btn primary" id="settings-apply" data-i18n="btn-apply">Apply</button>
       </div>
     </div>
   </div><!-- /settings-modal -->
@@ -292,7 +175,7 @@
   ═══════════════════════════════════════════ -->
   <div id="load-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="load-title">
     <div class="panel">
-      <h2 class="panel-title" id="load-title">💾 Save / Load</h2>
+      <h2 class="panel-title" id="load-title" data-i18n="load-title">💾 Save / Load</h2>
       <button class="close-btn" id="load-close" aria-label="Close save/load">✕</button>
 
       <div class="save-slots" id="save-slots-container">
@@ -300,11 +183,15 @@
       </div>
 
       <div class="panel-footer">
-        <button class="footer-btn" id="load-close-btn">Close</button>
+        <button class="footer-btn" id="load-close-btn" data-i18n="btn-load-close">Close</button>
       </div>
     </div>
   </div><!-- /load-modal -->
 
+
+  <!-- ── SFX UI ────────────────────────────────── -->
+  <audio id="sfx-click" preload="auto"><source src="assets/sfx/click.mp3"  type="audio/mpeg" /></audio>
+  <audio id="sfx-close" preload="auto"><source src="assets/sfx/close.mp3"  type="audio/mpeg" /></audio>
 
   <!-- ── MUSIC ─────────────────────────────────── -->
   <audio id="menu-music" loop preload="auto">
@@ -318,6 +205,36 @@
   <audio id="sfx-angry-meow"  preload="auto"><source src="assets/sfx/angry_meow.mp3"  type="audio/mpeg" /></audio>
   <audio id="sfx-paperslam"   preload="auto"><source src="assets/sfx/paperslam.mp3"   type="audio/mpeg" /></audio>
   <audio id="sfx-angry-meow2" preload="auto"><source src="assets/sfx/angry_meow2.mp3" type="audio/mpeg" /></audio>
+
+  <!-- ── SVG colourblind filter definitions (hidden) ── -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+    <defs>
+      <!-- Protanopia (red-blind) -->
+      <filter id="cb-protanopia" color-interpolation-filters="linearRGB">
+        <feColorMatrix type="matrix" values="
+          0.567 0.433 0     0 0
+          0.558 0.442 0     0 0
+          0     0.242 0.758 0 0
+          0     0     0     1 0"/>
+      </filter>
+      <!-- Deuteranopia (green-blind) -->
+      <filter id="cb-deuteranopia" color-interpolation-filters="linearRGB">
+        <feColorMatrix type="matrix" values="
+          0.625 0.375 0   0 0
+          0.7   0.3   0   0 0
+          0     0.3   0.7 0 0
+          0     0     0   1 0"/>
+      </filter>
+      <!-- Tritanopia (blue-blind) -->
+      <filter id="cb-tritanopia" color-interpolation-filters="linearRGB">
+        <feColorMatrix type="matrix" values="
+          0.95  0.05  0     0 0
+          0     0.433 0.567 0 0
+          0     0.475 0.525 0 0
+          0     0     0     1 0"/>
+      </filter>
+    </defs>
+  </svg>
 
   <script src="script.js"></script>
 </body>
