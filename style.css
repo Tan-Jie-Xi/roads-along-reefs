@@ -1,0 +1,513 @@
+/* ═══════════════════════════════════════════════
+   BASE RESET & FONTS
+═══════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #e8d5b3;          /* warm beige — fills letterbox areas */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ═══════════════════════════════════════════════
+   GAME CONTAINER  (692:492 canvas, centred)
+   Fixed + translate so it sits in the middle of
+   the viewport; the body background fills the
+   remaining space around it.
+═══════════════════════════════════════════════ */
+#game-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(100vw, calc(100vh * 692 / 492));
+  height: min(100vh, calc(100vw * 492 / 692));
+  overflow: hidden;
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.55);
+}
+
+/* ═══════════════════════════════════════════════
+   SCREEN MANAGEMENT
+   Screens are absolute inside #game-container,
+   not fixed to the viewport.
+═══════════════════════════════════════════════ */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.screen.hidden { display: none; }
+.screen.active { display: flex; }
+
+/* ═══════════════════════════════════════════════
+   MAIN MENU
+   All assets are 692×492 full-canvas frames.
+   They all stack directly inside #menu-screen,
+   filling it completely. pointer-events are
+   handled by invisible .menu-hit divs on top.
+═══════════════════════════════════════════════ */
+
+/* Every menu layer image fills the full canvas */
+#menu-screen img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+  draggable: false;
+}
+
+/* Z-index stacking order */
+#menu-bg     { z-index: 0; }
+#menu-truck  { z-index: 1; transition: filter 0.25s ease, transform 0.25s ease; transform-origin: 30% 80%; }
+#menu-title  { z-index: 2; transition: filter 0.25s ease, transform 0.25s ease; transform-origin: 75% 20%; }
+#stickbtn    { z-index: 3; }
+#playbtn     { z-index: 4; transition: filter 0.15s ease; }
+#settingsbtn { z-index: 5; transition: filter 0.15s ease; }
+#loadbtn     { z-index: 6; transition: filter 0.15s ease; }
+
+/* Hover/active states applied via JS by toggling these classes */
+#menu-truck.btn-hover  { transform: scale(1.04); }
+#menu-title.btn-hover  { transform: scale(1.04); }
+#playbtn.btn-hover,
+#settingsbtn.btn-hover,
+#loadbtn.btn-hover     { filter: brightness(0.72); }
+#playbtn.btn-active,
+#settingsbtn.btn-active,
+#loadbtn.btn-active    { filter: brightness(0.5); }
+
+/* ── Invisible hit areas ──────────────────────
+   Positioned over each visual element; live on
+   z-index 10 so they sit above all images.
+   Percentages are relative to the 692×492 canvas.
+──────────────────────────────────────────────── */
+.menu-hit {
+  position: absolute;
+  z-index: 10;
+  cursor: pointer;
+  /* background: rgba(255,0,0,0.15); */ /* ← uncomment to debug */
+}
+
+/* Truck occupies left ~58% of canvas, from ~10% top downward */
+#hit-truck    { left: 0%;  top: 10%; width: 58%; height: 90%; }
+/* Title: upper-right */
+#hit-title    { left: 57%; top: 1%;  width: 41%; height: 40%; }
+/* PLAY arrow (orange, upper sign) */
+#hit-play     { left: 55%; top: 46%; width: 30%; height: 14%; cursor: pointer; }
+/* SETTINGS arrow (green, middle sign) */
+#hit-settings { left: 47%; top: 65%; width: 36%; height: 14%; cursor: pointer; }
+/* LOAD arrow (blue, lower sign) */
+#hit-load     { left: 49%; top: 76%; width: 38%; height: 14%; cursor: pointer; }
+
+/* ═══════════════════════════════════════════════
+   MODAL OVERLAY (shared by settings & save/load)
+═══════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(4px);
+  animation: fadeOverlay 0.2s ease;
+}
+.modal-overlay.hidden { display: none; }
+
+@keyframes fadeOverlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ═══════════════════════════════════════════════
+   PANEL (shared card)
+═══════════════════════════════════════════════ */
+.panel {
+  background: #fdf6e3;
+  border: 4px solid #d4a843;
+  border-radius: 18px;
+  padding: 28px 34px 20px;
+  min-width: 480px;
+  max-width: 600px;
+  width: 90vw;
+  max-height: 88vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  animation: popIn 0.22s cubic-bezier(.34,1.56,.64,1);
+}
+
+@keyframes popIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+.panel-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #8b4513;
+  text-align: center;
+  margin-bottom: 16px;
+  letter-spacing: 0.5px;
+}
+
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: #e07b39;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s;
+}
+.close-btn:hover { background: #b85a20; }
+
+/* ═══════════════════════════════════════════════
+   TAB BAR
+═══════════════════════════════════════════════ */
+.tab-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  flex: 1;
+  background: #f0dbb0;
+  border: 2px solid #d4a843;
+  border-radius: 10px 10px 0 0;
+  padding: 7px 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #7a4f1b;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.tab-btn:hover { background: #e8cc88; }
+.tab-btn.active {
+  background: #d4a843;
+  color: #fff;
+  border-color: #b8892a;
+}
+
+/* ═══════════════════════════════════════════════
+   TAB CONTENT
+═══════════════════════════════════════════════ */
+.tab-content { display: block; }
+.tab-content.hidden { display: none; }
+
+.tab-note {
+  font-size: 0.82rem;
+  color: #888;
+  margin-bottom: 12px;
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════
+   SETTING ROWS
+═══════════════════════════════════════════════ */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #e8d9b0;
+  gap: 12px;
+}
+.setting-row:last-child { border-bottom: none; }
+
+.setting-row label:first-child {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #5a3a10;
+  flex: 1;
+}
+
+/* Range sliders */
+.setting-row input[type="range"] {
+  flex: 1;
+  accent-color: #d4a843;
+  max-width: 180px;
+}
+
+.range-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #8b4513;
+  min-width: 28px;
+  text-align: right;
+}
+
+/* Toggle switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.slider-toggle {
+  position: absolute;
+  inset: 0;
+  background: #ccc;
+  border-radius: 26px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.slider-toggle::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+.toggle-switch input:checked + .slider-toggle { background: #d4a843; }
+.toggle-switch input:checked + .slider-toggle::before { transform: translateX(20px); }
+
+/* Keybind chips */
+.keybind {
+  background: #3a2a10;
+  color: #f9e4a0;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: monospace;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.keybind:hover { background: #5a4020; }
+
+/* Styled selects */
+.styled-select {
+  padding: 5px 10px;
+  border: 2px solid #d4a843;
+  border-radius: 8px;
+  background: #fffde2;
+  color: #5a3a10;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  outline: none;
+}
+.styled-select:focus { border-color: #b8892a; }
+
+/* ═══════════════════════════════════════════════
+   PANEL FOOTER
+═══════════════════════════════════════════════ */
+.panel-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 2px solid #e8d9b0;
+}
+
+.footer-btn {
+  padding: 9px 20px;
+  border-radius: 10px;
+  border: 2px solid #d4a843;
+  background: #f0dbb0;
+  color: #7a4f1b;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.footer-btn:hover { background: #e8cc88; }
+.footer-btn:active { transform: scale(0.97); }
+.footer-btn.primary {
+  background: #d4a843;
+  color: #fff;
+  border-color: #b8892a;
+}
+.footer-btn.primary:hover { background: #b8892a; }
+
+/* ═══════════════════════════════════════════════
+   SAVE / LOAD PANEL
+═══════════════════════════════════════════════ */
+.save-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.save-slot {
+  background: #fdf0cc;
+  border: 2px solid #d4a843;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: background 0.15s;
+}
+.save-slot:hover { background: #fae8a8; }
+
+.slot-number {
+  font-weight: 800;
+  font-size: 1rem;
+  color: #8b4513;
+  min-width: 54px;
+}
+
+.slot-info {
+  flex: 1;
+  font-size: 0.88rem;
+  color: #7a5f30;
+  font-style: italic;
+}
+
+.slot-btns {
+  display: flex;
+  gap: 7px;
+}
+
+.slot-btn {
+  padding: 6px 13px;
+  border-radius: 8px;
+  border: 2px solid #d4a843;
+  background: #f0dbb0;
+  color: #5a3a10;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.slot-btn:hover:not(:disabled) { background: #d4a843; color: #fff; }
+.slot-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.slot-btn.danger {
+  border-color: #c0392b;
+  color: #c0392b;
+  background: #fdf0f0;
+}
+.slot-btn.danger:hover:not(:disabled) { background: #c0392b; color: #fff; }
+
+/* ═══════════════════════════════════════════════
+   SCENE TRANSITION OVERLAY
+   Sits at z-index 1000 in #game-container,
+   above every screen. Fades to black between
+   scenes, then back out.
+═══════════════════════════════════════════════ */
+#scene-transition {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  z-index: 1000;
+  pointer-events: none;
+  transition: opacity 0.75s ease;
+}
+#scene-transition.fading {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ═══════════════════════════════════════════════
+   CUTSCENE SCREEN
+═══════════════════════════════════════════════ */
+#cutscene-screen {
+  background: #fffde2;
+  cursor: pointer;
+}
+
+#cutscene-bg {
+  position: absolute;
+  inset: 0;
+  background: #fffde2;
+  z-index: 0;
+}
+
+/* All cutscene images stacked, full-screen inside the container */
+.cutscene-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+  pointer-events: none;
+  user-select: none;
+}
+.cutscene-img.visible { opacity: 1; }
+
+/* getajob is hardcoded z-index: 100 inline — sits on top of everything */
+
+/* Click-to-continue hint — hidden per design */
+#cutscene-hint { display: none; }
+
+/* ═══════════════════════════════════════════════
+   SCENE 2 — desk / table scene
+   All 4 layers are 2360×1680 full-canvas frames
+   stacked directly inside #scene2-screen.
+═══════════════════════════════════════════════ */
+#scene2-screen img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+}
+
+#scene2-table      { z-index: 0; }
+#scene2-tablestuff { z-index: 1; }
+#scene2-poster     { z-index: 2; }
+#scene2-phone      { z-index: 3; transition: filter 0.15s ease; }
+
+/* Phone hover/active driven by JS via hit div */
+#scene2-phone.btn-hover  { filter: brightness(0.85); }
+#scene2-phone.btn-active { filter: brightness(0.65); }
+
+/* Hit area for the phone (right portion of canvas) */
+#hit-phone {
+  position: absolute;
+  z-index: 10;
+  cursor: pointer;
+  left: 51%;
+  top:  12%;
+  width:  35%;
+  height: 78%;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ═══════════════════════════════════════════════
+   SCROLLBAR STYLING (panel)
+═══════════════════════════════════════════════ */
+.panel::-webkit-scrollbar { width: 6px; }
+.panel::-webkit-scrollbar-track { background: #f0dbb0; border-radius: 6px; }
+.panel::-webkit-scrollbar-thumb { background: #d4a843; border-radius: 6px; }
