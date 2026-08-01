@@ -1,10 +1,18 @@
 /* ═══════════════════════════════════════════════
    BASE RESET & FONTS
 ═══════════════════════════════════════════════ */
+@font-face {
+  font-family: 'RoadsAlongReefs';
+  src: url('assets/font/roadsalongreefsfont.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  font-family: 'RoadsAlongReefs', sans-serif;
 }
 
 html, body {
@@ -12,7 +20,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: #e8d5b3;          /* warm beige — fills letterbox areas */
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'RoadsAlongReefs', sans-serif;
 }
 
 /* ═══════════════════════════════════════════════
@@ -297,7 +305,7 @@ html, body {
   border-radius: 6px;
   font-size: 0.82rem;
   font-weight: 700;
-  font-family: monospace;
+  font-family: 'RoadsAlongReefs', sans-serif;
   cursor: pointer;
   user-select: none;
   transition: background 0.15s;
@@ -544,7 +552,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: 'RoadsAlongReefs', sans-serif;
   font-size: clamp(0.9rem, 3vw, 1.4rem);
   font-weight: 700;
   color: #1a1a1a;
