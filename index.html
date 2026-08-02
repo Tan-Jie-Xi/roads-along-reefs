@@ -8,12 +8,10 @@
 </head>
 <body>
 
-  <!-- ═══════════════════════════════════════════
-       GAME CONTAINER  (16:9 letterboxed)
-  ═══════════════════════════════════════════ -->
+
   <div id="game-container">
 
-    <!-- In-game HUD -->
+
     <div id="game-hud">
       <div id="money-hud">
         <img src="assets/ui/money.png" alt="Money" draggable="false" />
@@ -26,72 +24,72 @@
         <img src="assets/ui/ingame_settings.png" alt="" draggable="false" />
       </button>
     </div>
-    <button id="day-save-button" type="button" aria-label="Save progress">SAVE</button>
+    <button id="day-save-button" data-i18n="save-label" type="button" aria-label="Save progress">SAVE</button>
 
-    <!-- ── MAIN MENU SCREEN ─────────────────── -->
+
     <div id="menu-screen" class="screen active">
 
-      <!-- All images are 692×492 full-canvas frames, stacked directly here -->
-      <img id="menu-bg"     src="assets/titlescreen/menu_bg.png"     alt=""                  /><!-- z0 -->
-      <img id="menu-truck"  src="assets/titlescreen/menu_truck.png"  alt="Food Truck"        /><!-- z1 -->
-      <img id="menu-title"  src="assets/titlescreen/menu_title.png"  alt="Roads Along Reefs" /><!-- z2 -->
-      <img id="stickbtn"    src="assets/titlescreen/stickbtn.png"    alt=""                  /><!-- z3 -->
-      <img id="playbtn"     src="assets/titlescreen/playbtn.png"     alt="Play"              /><!-- z4 -->
-      <img id="settingsbtn" src="assets/titlescreen/settingsbtn.png" alt="Settings"          /><!-- z5 -->
-      <img id="loadbtn"     src="assets/titlescreen/loadbtn.png"     alt="Save/Load"         /><!-- z6 -->
 
-      <!-- hit-play / hit-settings / hit-load replaced by pixel-colour detection in script.js -->
+      <img id="menu-bg"     src="assets/titlescreen/menu_bg.png"     alt=""                  />
+      <img id="menu-truck"  src="assets/titlescreen/menu_truck.png"  alt="Food Truck"        />
+      <img id="menu-title"  src="assets/titlescreen/menu_title.png"  alt="Roads Along Reefs" />
+      <img id="stickbtn"    src="assets/titlescreen/stickbtn.png"    alt=""                  />
+      <img id="playbtn"     src="assets/titlescreen/playbtn.png"     alt="Play"              />
+      <img id="settingsbtn" src="assets/titlescreen/settingsbtn.png" alt="Settings"          />
+      <img id="loadbtn"     src="assets/titlescreen/loadbtn.png"     alt="Save/Load"         />
+
+
       <div id="hit-truck" class="menu-hit" data-target="menu-truck" data-action="truck"></div>
       <div id="hit-title" class="menu-hit" data-target="menu-title" data-action="title"></div>
 
-    </div><!-- /menu-screen -->
+    </div>
 
 
-    <!-- ── CUTSCENE SCREEN ──────────────────── -->
+
     <div id="cutscene-screen" class="screen hidden">
       <div id="cutscene-bg"></div>
 
-      <!-- accumulate in order; getajob & flyerpapers both on top layer -->
+
       <img class="cutscene-img" id="cs-cutscene1"   src="assets/cutscene1/cutscene1.png"   alt="" draggable="false" />
       <img class="cutscene-img" id="cs-getajob"     src="assets/cutscene1/getajob.png"     alt="" draggable="false" style="z-index:100;" />
       <img class="cutscene-img" id="cs-flyerpapers" src="assets/cutscene1/flyerpapers.png" alt="" draggable="false" style="z-index:100;" />
       <img class="cutscene-img" id="cs-cutscene2"   src="assets/cutscene1/cutscene2.png"   alt="" draggable="false" />
       <img class="cutscene-img" id="cs-cutscene3"   src="assets/cutscene1/cutscene3.png"   alt="" draggable="false" />
 
-      <div id="cutscene-hint">Click or press <kbd>Space</kbd> / <kbd>Enter</kbd> to continue</div>
-    </div><!-- /cutscene-screen -->
+      <div id="cutscene-hint" data-i18n="cutscene-hint">Click or press <kbd>Space</kbd> / <kbd>Enter</kbd> to continue</div>
+    </div>
 
 
-    <!-- ── SCENE 2 — desk scene ─────────────── -->
+
     <div id="scene2-screen" class="screen hidden">
 
-      <!-- Layer 0: table background -->
+
       <img id="scene2-table"      src="assets/scene2/scene2_table.png"      alt="" draggable="false" />
-      <!-- Layer 1: table stuff (clutter) -->
+
       <img id="scene2-tablestuff" src="assets/scene2/scene2_tablestuff.png" alt="" draggable="false" />
-      <!-- Layer 2: poster -->
+
       <img id="scene2-poster"     src="assets/scene2/scene2_poster.png"     alt="" draggable="false" />
-      <!-- Layer 3: phone on desk (clickable via hit div) -->
+
       <img id="scene2-phone"      src="assets/scene2/phone_off.png"         alt="Phone" draggable="false" />
 
-      <!-- Invisible hit area over the phone -->
+
       <div id="hit-phone"></div>
 
-    </div><!-- /scene2-screen -->
+    </div>
 
 
-    <!-- ── PHONE SCENE ──────────────────────── -->
+
     <div id="phone-screen" class="screen hidden">
 
-      <!-- Layer 0: table background (2360×1680, same aspect as canvas) -->
+
       <img id="phone-bg-table" src="assets/scene2/scene2_table.png"           alt="" draggable="false" />
-      <!-- Layer 1: poster_phone (692×492 full-canvas, beneath phone UI) -->
+
       <img id="phone-poster"   src="assets/scene2/poster_phone.png"           alt="" draggable="false" />
-      <!-- Layer 2: phone states (only one visible at a time) -->
+
       <img id="phone-dialing"  src="assets/scene2/phone_dialing.png"          alt="" draggable="false" />
       <img id="phone-calling"  src="assets/scene2/phone_calling.png"          alt="" draggable="false" />
       <img id="phone-ringing"  src="assets/scene2/phone_ringing.png"          alt="" draggable="false" />
-      <!-- Layer 3: button overlays — 692×492 full-canvas, pixel-detected -->
+
       <img class="phone-btn-img" id="pbtn-1"    src="assets/scene2/phone_buttons/1.png"       alt="" draggable="false" />
       <img class="phone-btn-img" id="pbtn-2"    src="assets/scene2/phone_buttons/2.png"       alt="" draggable="false" />
       <img class="phone-btn-img" id="pbtn-3"    src="assets/scene2/phone_buttons/3.png"       alt="" draggable="false" />
@@ -105,13 +103,13 @@
       <img class="phone-btn-img" id="pbtn-star" src="assets/scene2/phone_buttons/astrk.png"   alt="" draggable="false" />
       <img class="phone-btn-img" id="pbtn-hash" src="assets/scene2/phone_buttons/hashtag.png" alt="" draggable="false" />
       <img class="phone-btn-img" id="pbtn-call" src="assets/scene2/phone_buttons/callbtn.png" alt="" draggable="false" />
-      <!-- Number display — sits over the white display area of phone_dialing -->
+
       <div id="phone-display"></div>
 
-    </div><!-- /phone-screen -->
+    </div>
 
 
-    <!-- ── TRUCK SELECTION SCREEN ──────────────── -->
+
     <div id="truck-select-screen" class="screen hidden">
       <img id="ts-bg"           src="assets/truck_selection/background.png"     alt="" draggable="false" />
       <img id="ts-eco-truck"    src="assets/truck_selection/eco_truck.png"      alt="" draggable="false" />
@@ -119,27 +117,27 @@
       <img id="ts-name-img"     src="assets/truck_selection/ecotruck_name.png"  alt="" draggable="false" />
       <img id="ts-clipboard"    src="assets/truck_selection/clipboard.png"      alt="" draggable="false" />
 
-      <!-- Text overlays -->
-      <div id="ts-truck-label">Electric</div>
+
+      <div id="ts-truck-label" data-i18n="truck-electric">Electric</div>
       <div id="ts-clipboard-text"></div>
 
-      <!-- Hit areas: text label (select) + arrow (switch) -->
+
       <div id="hit-ts-text"></div>
       <div id="hit-ts-arrow"></div>
-    </div><!-- /truck-select-screen -->
+    </div>
 
 
-    <!-- ── SERVING SCREEN ───────────────────── -->
+
     <div id="serving-screen" class="screen hidden">
       <img id="serving-bg" src="assets/serving/counter.png" alt="" draggable="false" />
 
-      <!-- Order box (above active customer) -->
+
       <div id="order-box-wrap" class="hidden">
         <img id="order-box-img" src="" alt="" draggable="false" />
         <div id="order-box-slots"></div>
       </div>
 
-      <!-- Customer window area -->
+
       <div id="customer-area">
         <div id="customer-next" class="customer-slot"></div>
         <div id="customer-active" class="customer-slot"></div>
@@ -149,29 +147,29 @@
         <img id="customer-reaction-dish" src="" alt="" draggable="false" />
       </div>
 
-      <!-- Tutorial speech bubble (top of screen) -->
+
       <div id="serving-tutorial-wrap">
         <img id="serving-speech"  src="assets/tutorials/tutorial_speech_2.png" alt="" draggable="false" />
         <img id="serving-cat"     src="assets/tutorials/tutorial_cat_icon.png" alt="" draggable="false" />
         <div id="serving-tut-text"></div>
       </div>
 
-      <!-- To-kitchen arrow (shown after order box tutorial) -->
+
       <img id="to-kitchen-arrow" src="assets/serving/to_kitchen.png" alt="" draggable="false" class="hidden" />
 
-    </div><!-- /serving-screen -->
+    </div>
 
 
-    <!-- ── COOKING SCREEN ───────────────────── -->
+
     <div id="cooking-screen" class="screen hidden">
       <div id="cooking-bg"></div>
       <img id="cooking-stove" src="assets/cooking/stove.png" alt="" draggable="false" />
 
-      <!-- to_counter button -->
+
       <img id="cooking-to-counter" src="assets/cooking/to_counter.png" alt="" draggable="false" />
       <div id="hit-cooking-to-counter" class="cooking-hit"></div>
 
-      <!-- Rice, noodles, and eggs -->
+
       <img class="base-img" id="ing-rice" src="assets/cooking/rice.png" alt="" draggable="false" />
       <img class="base-img" id="ing-noodles" src="assets/cooking/noodles_closed.png" alt="" draggable="false" />
       <img class="base-img" id="ing-egg" src="assets/cooking/egg_full.png" alt="" draggable="false" />
@@ -179,14 +177,14 @@
       <div class="base-hover-hit" id="hit-noodles"><span class="ingredient-count">12</span></div>
       <div class="base-hover-hit" id="hit-egg"><span class="ingredient-count">4</span></div>
 
-      <!-- Slide 1: mushrooms, broccoli, tofu -->
+
       <img class="ing-img" id="ing-mushrooms" src="assets/cooking/mushrooms.png" alt="" draggable="false" />
       <img class="ing-img" id="ing-broccoli"  src="assets/cooking/broccoli.png"  alt="" draggable="false" />
       <img class="ing-img" id="ing-tofu"      src="assets/cooking/tofu.png"      alt="" draggable="false" />
       <img class="cook-arrow-img" id="cooking-next1" src="assets/cooking/next_ingredient_slide1.png" alt="" draggable="false" />
       <div id="hit-cooking-next1" class="cooking-hit"></div>
 
-      <!-- Slide 2: tomatoes, cabbage, corn -->
+
       <img class="ing-img ing-s2" id="ing-tomatoes" src="assets/cooking/tomatoes.png" alt="" draggable="false" />
       <img class="ing-img ing-s2" id="ing-cabbage"  src="assets/cooking/cabbage.png"  alt="" draggable="false" />
       <img class="ing-img ing-s2" id="ing-corn"     src="assets/cooking/corn.png"     alt="" draggable="false" />
@@ -195,17 +193,17 @@
       <div id="hit-cooking-last1" class="cooking-hit ing-s2"></div>
       <div id="hit-cooking-next2" class="cooking-hit ing-s2"></div>
 
-      <!-- Slide 3: carrots -->
+
       <img class="ing-img ing-s3" id="ing-carrots"  src="assets/cooking/carrots.png"  alt="" draggable="false" />
       <img class="cook-arrow-img ing-s3" id="cooking-last2" src="assets/cooking/last_ingredient_slide2.png" alt="" draggable="false" />
       <div id="hit-cooking-last2" class="cooking-hit ing-s3"></div>
 
-      <!-- Ingredient hover hit areas (3 slots) -->
+
       <div class="ing-hover-hit" id="hit-ing-slot1"><span class="ingredient-count">9</span></div>
       <div class="ing-hover-hit" id="hit-ing-slot2"><span class="ingredient-count">9</span></div>
       <div class="ing-hover-hit" id="hit-ing-slot3"><span class="ingredient-count">9</span></div>
 
-      <!-- Pot and its editable hit areas -->
+
       <div id="pot-contents"></div>
       <img id="cooking-pot" src="assets/cooking/pot_open.png" alt="" draggable="false" />
       <div id="hit-cooking-pot" class="pot-hit-area"></div>
@@ -217,8 +215,7 @@
         <div id="hit-cooking-meter"></div>
       </div>
 
-      <!-- One-time first-entry cooking tutorial. The transparent overlay
-           blocks every kitchen control except the speech image. -->
+
       <div id="cooking-tutorial-overlay" class="hidden">
         <div id="cooking-tutorial-wrap">
           <img id="cooking-tutorial-speech" src="assets/tutorials/tutorial_speech_2.png" alt="" draggable="false" />
@@ -226,10 +223,10 @@
           <div id="cooking-tutorial-text"></div>
         </div>
       </div>
-    </div><!-- /cooking-screen -->
+    </div>
 
 
-    <!-- ── SHOP SUPPLIER SCREEN ───────────────── -->
+
     <div id="shop-screen" class="screen hidden">
       <img id="shop-background" class="shop-layer shop-background" src="assets/shop/farm.png" alt="" draggable="false" />
       <img id="shop-sidebar" class="shop-layer" src="assets/shop/sidebar.png" alt="" draggable="false" />
@@ -244,10 +241,10 @@
       <div id="hit-shop-hypermarket" class="shop-hit shop-choice-hit" aria-label="Hypermarket"></div>
       <div id="hit-shop-info-farm" class="shop-hit shop-info-hit" aria-label="Local farm information"></div>
       <div id="hit-shop-info-market" class="shop-hit shop-info-hit hidden" aria-label="Hypermarket information"></div>
-    </div><!-- /shop-screen -->
+    </div>
 
 
-    <!-- ── PURCHASING SCREEN ──────────────────── -->
+
     <div id="purchasing-screen" class="screen hidden">
       <div id="purchase-page-track">
         <div class="purchase-page" id="purchase-page-1">
@@ -267,9 +264,9 @@
       <img id="next_page" class="purchase-page-button" src="assets/shop/next_page.png" alt="Next page" draggable="false" />
       <img id="purchase-exit" class="purchase-page-button" src="assets/shop/exit.png" alt="Exit shop" draggable="false" />
       <div id="hit-purchase-exit" class="purchase-page-button-hit hidden" aria-label="Exit shop"></div>
-    </div><!-- /purchasing-screen -->
+    </div>
 
-    <!-- ── DAY SUMMARY SCREEN ─────────────────── -->
+
     <div id="day-summary-screen" class="screen hidden">
       <img id="day-summary-receipt" src="assets/day_summary/receipt.png" alt="Day summary" draggable="false" />
       <img id="day-summary-left-star" class="day-summary-star" src="assets/day_summary/left_star.png" alt="" draggable="false" />
@@ -278,15 +275,12 @@
       <div id="day-summary-earned" class="day-summary-value"></div>
       <div id="day-summary-spent" class="day-summary-value"></div>
       <div id="day-summary-total" class="day-summary-value"></div>
-    </div><!-- /day-summary-screen -->
+    </div>
 
 
-    <!-- ── DIALOGUE OVERLAY ─────────────────────
-         Appears above screens (z 600), below the
-         scene-transition fade (z 1000).
-    ──────────────────────────────────────────── -->
+
     <div id="dialogue-overlay" class="hidden">
-      <!-- Aspect-ratio wrapper so % positions work -->
+
       <div id="dialogue-box-wrap">
         <img id="dialogue-box-img" src="assets/tutorials/dialogue_box.png" alt="" draggable="false" />
         <div id="dialogue-name">Sales Rep.</div>
@@ -298,41 +292,37 @@
       <div id="day-intro-label"></div>
     </div>
 
-    <!-- ── SCENE TRANSITION OVERLAY ──────────── -->
-    <!-- Sits above every screen; fades to black between scenes -->
+
+
     <div id="scene-transition"></div>
 
-  </div><!-- /game-container -->
+  </div>
 
 
-  <!-- ═══════════════════════════════════════════
-       TRUCK CONFIRM MODAL
-  ═══════════════════════════════════════════ -->
+
   <div id="truck-confirm-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
     <div class="panel" style="max-width:460px;">
       <h2 class="panel-title" id="truck-confirm-title">Are you sure?</h2>
       <p id="truck-confirm-msg" style="text-align:center;margin:4px 0 18px;color:#5a3a10;line-height:1.55;font-size:0.95rem;"></p>
       <div class="panel-footer" id="truck-confirm-btns"></div>
     </div>
-  </div><!-- /truck-confirm-modal -->
+  </div>
 
 
-  <!-- ═══════════════════════════════════════════
-       SETTINGS MODAL
-  ═══════════════════════════════════════════ -->
+
   <div id="settings-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <div class="panel">
       <h2 class="panel-title" id="settings-title" data-i18n="settings-title">⚙️ Settings</h2>
-      <button class="close-btn" id="settings-close" aria-label="Close settings">✕</button>
+      <button class="close-btn" id="settings-close" data-sfx="close" aria-label="Close settings">✕</button>
 
-      <!-- Tab bar -->
+
       <div class="tab-bar" role="tablist">
         <button class="tab-btn active" role="tab" data-tab="audio"         data-i18n="tab-audio">🔊 Audio</button>
         <button class="tab-btn"        role="tab" data-tab="accessibility" data-i18n="tab-accessibility">♿ Access.</button>
         <button class="tab-btn"        role="tab" data-tab="game"          data-i18n="tab-game">🐱 Game</button>
       </div>
 
-      <!-- AUDIO -->
+
       <div class="tab-content" id="tab-audio" role="tabpanel">
         <div class="setting-row">
           <label for="master-vol" data-i18n="lbl-master-vol">Master Volume</label>
@@ -358,7 +348,7 @@
         </div>
       </div>
 
-      <!-- ACCESSIBILITY -->
+
       <div class="tab-content hidden" id="tab-accessibility" role="tabpanel">
         <div class="setting-row">
           <label for="text-size" data-i18n="lbl-text-size">Text Size</label>
@@ -387,15 +377,15 @@
         </div>
       </div>
 
-      <!-- GAME OPTIONS -->
+
       <div class="tab-content hidden" id="tab-game" role="tabpanel">
         <div class="setting-row">
           <label for="lang" data-i18n="lbl-lang">Language</label>
           <select class="styled-select" id="lang">
-            <option value="en" selected>English</option>
-            <option value="ms">Bahasa Melayu</option>
-            <option value="zh">中文</option>
-            <option value="ta">தமிழ்</option>
+            <option value="en" data-i18n-opt="lang-en" selected>English</option>
+            <option value="ms" data-i18n-opt="lang-ms">Bahasa Melayu</option>
+            <option value="zh" data-i18n-opt="lang-zh">中文</option>
+            <option value="ta" data-i18n-opt="lang-ta">தமிழ்</option>
           </select>
         </div>
         <div class="setting-row">
@@ -412,33 +402,31 @@
         <button class="footer-btn primary" id="settings-apply" data-i18n="btn-apply">Apply</button>
       </div>
     </div>
-  </div><!-- /settings-modal -->
+  </div>
 
 
-  <!-- ═══════════════════════════════════════════
-       SAVE / LOAD MODAL
-  ═══════════════════════════════════════════ -->
+
   <div id="load-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="load-title">
     <div class="panel">
       <h2 class="panel-title" id="load-title" data-i18n="load-title">💾 Save / Load</h2>
-      <button class="close-btn" id="load-close" aria-label="Close save/load">✕</button>
+      <button class="close-btn" id="load-close" data-sfx="close" aria-label="Close save/load">✕</button>
 
       <div class="save-slots" id="save-slots-container">
-        <!-- Slots injected by JS -->
+
       </div>
 
       <div class="panel-footer">
         <button class="footer-btn" id="load-close-btn" data-i18n="btn-load-close">Close</button>
       </div>
     </div>
-  </div><!-- /load-modal -->
+  </div>
 
   <div id="cooking-result-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="cooking-result-title">
     <div class="panel cooking-result-panel">
       <h2 class="panel-title" id="cooking-result-title"></h2>
       <p id="cooking-result-message"></p>
       <div class="panel-footer">
-        <button class="footer-btn primary" id="cooking-result-ok">Ok</button>
+        <button class="footer-btn primary" id="cooking-result-ok" data-i18n="btn-ok">Ok</button>
       </div>
     </div>
   </div>
@@ -448,51 +436,54 @@
       <h2 class="panel-title" id="shop-info-title"></h2>
       <p id="shop-info-message"></p>
       <div class="panel-footer">
-        <button class="footer-btn primary" id="shop-info-ok" type="button">OK</button>
+        <button class="footer-btn primary" id="shop-info-ok" data-i18n="btn-ok" type="button">OK</button>
       </div>
     </div>
   </div>
 
   <div id="supplier-confirm-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="supplier-confirm-title">
     <div class="panel shop-dialog-panel">
-      <h2 class="panel-title" id="supplier-confirm-title">Choose supplier</h2>
-      <p id="supplier-confirm-message">Select local farm as your supplier from now on?</p>
+      <h2 class="panel-title" id="supplier-confirm-title" data-i18n="supplier-confirm-title">Choose supplier</h2>
+      <p id="supplier-confirm-message" data-i18n="supplier-confirm-message">Select local farm as your supplier from now on?</p>
       <div class="panel-footer">
-        <button class="footer-btn" id="supplier-no" type="button">No</button>
-        <button class="footer-btn primary" id="supplier-yes" type="button">Yes</button>
+        <button class="footer-btn" id="supplier-no" data-i18n="btn-no" data-sfx="close" type="button">No</button>
+        <button class="footer-btn primary" id="supplier-yes" data-i18n="btn-yes" type="button">Yes</button>
       </div>
     </div>
   </div>
 
   <div id="supplier-warning-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="supplier-warning-title">
     <div class="panel shop-dialog-panel">
-      <h2 class="panel-title" id="supplier-warning-title">Hypermarkets</h2>
-      <p id="supplier-warning-message">Selecting hypermarket as your supplier seems like a bad choice… Pick another?</p>
+      <h2 class="panel-title" id="supplier-warning-title" data-i18n="supplier-warning-title">Hypermarkets</h2>
+      <p id="supplier-warning-message" data-i18n="supplier-warning-message">Selecting hypermarket as your supplier seems like a bad choice… Pick another?</p>
       <div class="panel-footer">
-        <button class="footer-btn primary" id="supplier-warning-ok" type="button">OK</button>
+        <button class="footer-btn primary" id="supplier-warning-ok" data-i18n="btn-ok" data-sfx="close" type="button">OK</button>
       </div>
     </div>
   </div>
 
 
-  <!-- ── SFX UI ────────────────────────────────── -->
+
   <audio id="sfx-click" preload="auto"><source src="assets/sfx/click.mp3"  type="audio/mpeg" /></audio>
   <audio id="sfx-close" preload="auto"><source src="assets/sfx/close.mp3"  type="audio/mpeg" /></audio>
 
-  <!-- ── MUSIC ─────────────────────────────────── -->
+
   <audio id="menu-music" loop preload="auto">
     <source src="assets/music/main_menu_music.mp3" type="audio/mpeg" />
   </audio>
   <audio id="scene2-music" loop preload="auto">
     <source src="assets/music/scene2_music.mp3" type="audio/mpeg" />
   </audio>
+  <audio id="working-music" loop preload="auto">
+    <source src="assets/music/working_music.mp3" type="audio/mpeg" />
+  </audio>
 
-  <!-- ── SFX ──────────────────────────────────── -->
+
   <audio id="sfx-angry-meow"  preload="auto"><source src="assets/sfx/angry_meow.mp3"  type="audio/mpeg" /></audio>
   <audio id="sfx-paperslam"   preload="auto"><source src="assets/sfx/paperslam.mp3"   type="audio/mpeg" /></audio>
   <audio id="sfx-angry-meow2" preload="auto"><source src="assets/sfx/angry_meow2.mp3" type="audio/mpeg" /></audio>
 
-  <!-- ── PHONE SFX ─────────────────────────── -->
+
   <audio id="sfx-phonesfx1"  preload="auto"><source src="assets/sfx/phone/phonesfx1.mp3"  type="audio/mpeg" /></audio>
   <audio id="sfx-phonesfx2"  preload="auto"><source src="assets/sfx/phone/phonesfx2.mp3"  type="audio/mpeg" /></audio>
   <audio id="sfx-phonesfx3"  preload="auto"><source src="assets/sfx/phone/phonesfx3.mp3"  type="audio/mpeg" /></audio>
@@ -500,10 +491,10 @@
   <audio id="sfx-phonesfx5"  preload="auto"><source src="assets/sfx/phone/phonesfx5.mp3"  type="audio/mpeg" /></audio>
   <audio id="sfx-phone-ring" preload="auto"><source src="assets/sfx/phone/phone_ring.mp3"  type="audio/mpeg" /></audio>
 
-  <!-- ── SVG colourblind filter definitions (hidden) ── -->
+
   <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
     <defs>
-      <!-- Protanopia (red-blind) -->
+
       <filter id="cb-protanopia" color-interpolation-filters="linearRGB">
         <feColorMatrix type="matrix" values="
           0.567 0.433 0     0 0
@@ -511,7 +502,7 @@
           0     0.242 0.758 0 0
           0     0     0     1 0"/>
       </filter>
-      <!-- Deuteranopia (green-blind) -->
+
       <filter id="cb-deuteranopia" color-interpolation-filters="linearRGB">
         <feColorMatrix type="matrix" values="
           0.625 0.375 0   0 0
@@ -519,7 +510,7 @@
           0     0.3   0.7 0 0
           0     0     0   1 0"/>
       </filter>
-      <!-- Tritanopia (blue-blind) -->
+
       <filter id="cb-tritanopia" color-interpolation-filters="linearRGB">
         <feColorMatrix type="matrix" values="
           0.95  0.05  0     0 0
@@ -530,7 +521,7 @@
     </defs>
   </svg>
 
-  <!-- ── CUSTOM CURSOR (body-level so it works over modals too) ── -->
+
   <div id="custom-cursor" aria-hidden="true">
     <img id="cursor-img" src="assets/pointer/neutral.png" alt="" draggable="false" />
   </div>

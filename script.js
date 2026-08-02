@@ -1,13 +1,13 @@
-/* ═══════════════════════════════════════════════
-   Roads Along Reefs — Main Script
-   Screens: main-menu → cutscene → (game)
-═══════════════════════════════════════════════ */
+
+
+
+
 
 "use strict";
 
-/* ─────────────────────────────────────────────
-   SCREEN HELPERS
-───────────────────────────────────────────── */
+
+
+
 function _setActiveScreen(id) {
   document.querySelectorAll(".screen").forEach((s) => {
     s.classList.toggle("active", s.id === id);
@@ -15,8 +15,8 @@ function _setActiveScreen(id) {
   });
 }
 
-// showScreen is defined once below, after SCREEN_MUSIC is declared,
-// so it can also manage music. Forward-declare a stub so early callers work.
+
+
 function showScreen(id) {
   _setActiveScreen(id);
 }
@@ -29,24 +29,57 @@ function hideModal(id) {
   document.getElementById(id).classList.add("hidden");
 }
 
-/* ─────────────────────────────────────────────
-   UI SFX  (click / close)
-───────────────────────────────────────────── */
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  const openModals = [...document.querySelectorAll(".modal-overlay:not(.hidden)")];
+  const modal = openModals.at(-1);
+  if (!modal) return;
+  playUiSfx("close");
+  modal.classList.add("hidden");
+});
+
+
+
+
 function playUiSfx(which) {
-  // which = 'click' | 'close'
+
   const el = document.getElementById(`sfx-${which}`);
   if (!el) return;
+  const now = performance.now();
+  if (playUiSfx._lastType === which && now - (playUiSfx._lastAt || 0) < 45) return;
+  playUiSfx._lastType = which;
+  playUiSfx._lastAt = now;
   el.currentTime = 0;
   el.play().catch(() => {});
 }
 
-/* ─────────────────────────────────────────────
-   PIXEL-COLOUR HIT DETECTION
-   Each button image (full 692×492 canvas) is
-   drawn to an offscreen canvas once; on every
-   mousemove we sample the pixel under the cursor
-   and consider it a hit if alpha > 30.
-───────────────────────────────────────────── */
+
+
+
+document.addEventListener("click", (event) => {
+  const target = event.target.closest?.(
+    "button, [role='button'], [data-sfx], .menu-hit, .screen-hit, " +
+    ".cooking-hit, .base-hover-hit, .ing-hover-hit, .shop-choice-hit, " +
+    ".purchase-page-button-hit, #serving-tutorial-wrap, #cooking-tutorial-speech, " +
+    "#order-box-wrap, #to-kitchen-arrow, #day-summary-screen, " +
+    "[id^='hit-'], [id^='pbtn-'], .modal-overlay"
+  );
+  if (!target) return;
+  const explicit = target.dataset.sfx;
+  const isClose = explicit === "close" ||
+    target.classList.contains("close-btn") ||
+    (target.classList.contains("modal-overlay") && event.target === target) ||
+    /(?:close|clearcart|last_page)$/.test(target.id || "");
+  playUiSfx(isClose ? "close" : "click");
+}, true);
+
+
+
+
+
+
+
+
 const CANVAS_W = 692;
 const CANVAS_H = 492;
 
@@ -75,11 +108,11 @@ class PixelButton {
     this.ready = true;
   }
 
-  /** Returns true if the mouse (in viewport coords) is over a visible pixel.
-   *  xShift / yShift compensate for a CSS transform applied to the image:
-   *  when translateX(9.10%) shifts the visual rendering right by ~63px,
-   *  the user clicks at canvas_x+63, so we subtract 63 to get back to the
-   *  pixel coordinate where the button is drawn in the original PNG.       */
+
+
+
+
+
   hitTest(clientX, clientY, containerRect, xShift = 0, yShift = 0) {
     if (!this.ready) return false;
     const scaleX = CANVAS_W / containerRect.width;
@@ -105,9 +138,9 @@ class PixelButton {
   }
 }
 
-/* ─────────────────────────────────────────────
-   TRUCK & TITLE HOVER  (rectangular hit divs)
-───────────────────────────────────────────── */
+
+
+
 [
   { hitId: "hit-truck", imgId: "menu-truck" },
   { hitId: "hit-title", imgId: "menu-title" },
@@ -132,7 +165,7 @@ const pixelButtons = [
   new PixelButton(document.getElementById("loadbtn"), "load"),
 ];
 
-// Shared state: which button is currently the hit target
+
 let hitBtn = null;
 
 menuScreen.addEventListener("mousemove", (e) => {
@@ -145,7 +178,7 @@ menuScreen.addEventListener("mousemove", (e) => {
     }
   }
 
-  // Update hover states
+
   for (const pb of pixelButtons) {
     pb.setHover(pb === found);
   }
@@ -190,15 +223,15 @@ menuScreen.addEventListener("click", (e) => {
   }
 });
 
-/* ─────────────────────────────────────────────
-   SETTINGS MODAL
-───────────────────────────────────────────── */
+
+
+
 document.getElementById("settings-close").addEventListener("click", () => {
   playUiSfx("close");
   hideModal("settings-modal");
 });
 
-// Close on backdrop click
+
 document
   .getElementById("settings-modal")
   .addEventListener("click", function (e) {
@@ -208,7 +241,7 @@ document
     }
   });
 
-// Tab switching — play click sfx
+
 document.querySelectorAll("#settings-modal .tab-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     playUiSfx("click");
@@ -223,7 +256,7 @@ document.querySelectorAll("#settings-modal .tab-btn").forEach((btn) => {
   });
 });
 
-// Range sliders → live value display + live apply
+
 document
   .querySelectorAll('.setting-row input[type="range"]')
   .forEach((slider) => {
@@ -234,14 +267,14 @@ document
     });
   });
 
-// Toggles + selects → live apply
+
 document
   .querySelectorAll('.setting-row input[type="checkbox"], .setting-row select')
   .forEach((el) => {
     el.addEventListener("change", () => applySettings());
   });
 
-// Reset defaults
+
 const SETTING_DEFAULTS = {
   "master-vol": 80,
   "music-vol": 70,
@@ -258,12 +291,12 @@ document.getElementById("settings-reset").addEventListener("click", () => {
       if (valEl) valEl.textContent = val;
     }
   });
-  // Reset toggles
+
   ["mute-toggle", "high-contrast", "autosave-toggle"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.checked = id === "autosave-toggle";
   });
-  // Reset selects
+
   const textSize = document.getElementById("text-size");
   if (textSize) textSize.value = "medium";
   const colorblind = document.getElementById("colorblind");
@@ -280,9 +313,9 @@ document.getElementById("settings-apply").addEventListener("click", () => {
   hideModal("settings-modal");
 });
 
-/* ─────────────────────────────────────────────
-   TRANSLATIONS
-───────────────────────────────────────────── */
+
+
+
 const TRANSLATIONS = {
   en: {
     "settings-title": "⚙️ Settings",
@@ -310,6 +343,35 @@ const TRANSLATIONS = {
     "opt-cb-deut": "Deuteranopia",
     "opt-cb-trit": "Tritanopia",
     "opt-cb-grey": "Greyscale",
+    "lang-en": "English",
+    "lang-ms": "Bahasa Melayu",
+    "lang-zh": "中文",
+    "lang-ta": "தமிழ்",
+    "btn-ok": "OK",
+    "btn-yes": "Yes",
+    "btn-no": "No",
+    "supplier-confirm-title": "Choose supplier",
+    "supplier-confirm-message": "Select local farm as your supplier from now on?",
+    "supplier-warning-title": "Hypermarkets",
+    "supplier-warning-message": "Selecting hypermarket as your supplier seems like a bad choice… Pick another?",
+    "cutscene-hint": "Click or press Space / Enter to continue",
+    "truck-electric": "Electric",
+    "truck-diesel": "Diesel",
+    "truck-electric-desc": "Electric vehicles eliminate loud generator noise and toxic exhaust fumes, enabling food trucks to operate quietly and cleanly right next to customers.",
+    "truck-diesel-desc": "Diesel-powered food trucks emit high levels of toxic particulate matter and create constant loud engine noise, which can drive customers away and further pollute the environment.",
+    "shop-farm-title": "Local farms",
+    "shop-farm-message": "Sourcing from local farms reduces the carbon footprint by cutting down on transport distances and minimizes plastic packaging waste common in hypermarkets.",
+    "shop-market-title": "Hypermarkets",
+    "shop-market-message": "Sourcing from hypermarkets relies on long-distance logistics that generate high transport emissions and requires excessive chemical preservatives to keep food fresh during transit.",
+    "day-label": "DAY",
+    "save-label": "SAVE",
+    "slot-label": "Slot",
+    "slot-empty": "Empty",
+    "save-action": "Save",
+    "load-action": "Load",
+    "delete-confirm": "Delete Slot",
+    "truck-confirm-eco": "Great choice! You've helped reduce your food truck's carbon footprint!",
+    "truck-confirm-diesel": "Hmm, that doesn't seem like a good option. Why not try choosing the more eco-friendly truck?",
   },
   ms: {
     "settings-title": "⚙️ Tetapan",
@@ -337,6 +399,35 @@ const TRANSLATIONS = {
     "opt-cb-deut": "Deuteranopia",
     "opt-cb-trit": "Tritanopia",
     "opt-cb-grey": "Skala Kelabu",
+    "lang-en": "English",
+    "lang-ms": "Bahasa Melayu",
+    "lang-zh": "中文",
+    "lang-ta": "தமிழ்",
+    "btn-ok": "OK",
+    "btn-yes": "Ya",
+    "btn-no": "Tidak",
+    "supplier-confirm-title": "Pilih pembekal",
+    "supplier-confirm-message": "Pilih ladang tempatan sebagai pembekal anda mulai sekarang?",
+    "supplier-warning-title": "Pasar raya",
+    "supplier-warning-message": "Memilih pasar raya sebagai pembekal nampaknya pilihan yang kurang baik… Pilih yang lain?",
+    "cutscene-hint": "Klik atau tekan Space / Enter untuk teruskan",
+    "truck-electric": "Elektrik",
+    "truck-diesel": "Diesel",
+    "truck-electric-desc": "Kenderaan elektrik menghapuskan bunyi generator yang kuat dan asap toksik, membolehkan trak makanan beroperasi dengan senyap dan bersih.",
+    "truck-diesel-desc": "Trak makanan diesel mengeluarkan zarah toksik yang tinggi dan bunyi enjin yang kuat, yang boleh menjauhkan pelanggan serta mencemarkan alam sekitar.",
+    "shop-farm-title": "Ladang tempatan",
+    "shop-farm-message": "Sumber daripada ladang tempatan mengurangkan jejak karbon melalui jarak pengangkutan yang lebih pendek dan kurang pembaziran pembungkusan plastik.",
+    "shop-market-title": "Pasar raya",
+    "shop-market-message": "Sumber daripada pasar raya bergantung pada logistik jarak jauh yang menghasilkan pelepasan pengangkutan tinggi dan bahan pengawet kimia.",
+    "day-label": "HARI",
+    "save-label": "SIMPAN",
+    "slot-label": "Slot",
+    "slot-empty": "Kosong",
+    "save-action": "Simpan",
+    "load-action": "Muat",
+    "delete-confirm": "Padam Slot",
+    "truck-confirm-eco": "Pilihan yang bagus! Anda membantu mengurangkan jejak karbon trak makanan anda!",
+    "truck-confirm-diesel": "Hmm, itu nampaknya bukan pilihan yang baik. Cuba pilih trak yang lebih mesra alam.",
   },
   zh: {
     "settings-title": "⚙️ 设置",
@@ -364,6 +455,35 @@ const TRANSLATIONS = {
     "opt-cb-deut": "绿色盲",
     "opt-cb-trit": "蓝色盲",
     "opt-cb-grey": "灰度",
+    "lang-en": "英语",
+    "lang-ms": "马来语",
+    "lang-zh": "中文",
+    "lang-ta": "泰米尔语",
+    "btn-ok": "确定",
+    "btn-yes": "是",
+    "btn-no": "否",
+    "supplier-confirm-title": "选择供应商",
+    "supplier-confirm-message": "以后选择本地农场作为你的供应商吗？",
+    "supplier-warning-title": "大型超市",
+    "supplier-warning-message": "选择大型超市作为供应商似乎不是好主意……换一个？",
+    "cutscene-hint": "点击或按 Space / Enter 继续",
+    "truck-electric": "电动",
+    "truck-diesel": "柴油",
+    "truck-electric-desc": "电动车辆没有嘈杂的发电机噪音和有毒废气，让餐车可以安静、清洁地在顾客旁边营业。",
+    "truck-diesel-desc": "柴油餐车会排放大量有毒颗粒并产生持续的发动机噪音，可能赶走顾客并加剧环境污染。",
+    "shop-farm-title": "本地农场",
+    "shop-farm-message": "从本地农场采购可以缩短运输距离、减少碳足迹，也能减少大型超市常见的塑料包装浪费。",
+    "shop-market-title": "大型超市",
+    "shop-market-message": "从大型超市采购依赖长途物流，会产生较高的运输排放，并需要使用化学防腐剂保持食材新鲜。",
+    "day-label": "第",
+    "save-label": "保存",
+    "slot-label": "存档",
+    "slot-empty": "空",
+    "save-action": "保存",
+    "load-action": "读取",
+    "delete-confirm": "删除存档",
+    "truck-confirm-eco": "很好的选择！你帮助减少了餐车的碳足迹！",
+    "truck-confirm-diesel": "嗯，这似乎不是一个好选择。为什么不试试更环保的餐车呢？",
   },
   ta: {
     "settings-title": "⚙️ அமைப்புகள்",
@@ -391,6 +511,35 @@ const TRANSLATIONS = {
     "opt-cb-deut": "டியூட்ரனோபியா",
     "opt-cb-trit": "ட்ரைட்டனோபியா",
     "opt-cb-grey": "சாம்பல் நிறம்",
+    "lang-en": "ஆங்கிலம்",
+    "lang-ms": "மலாய்",
+    "lang-zh": "சீனம்",
+    "lang-ta": "தமிழ்",
+    "btn-ok": "சரி",
+    "btn-yes": "ஆம்",
+    "btn-no": "இல்லை",
+    "supplier-confirm-title": "விற்பனையாளரைத் தேர்வு செய்க",
+    "supplier-confirm-message": "இனிமேல் உள்ளூர் பண்ணையை விற்பனையாளராகத் தேர்வு செய்யவா?",
+    "supplier-warning-title": "பெரிய சந்தைகள்",
+    "supplier-warning-message": "பெரிய சந்தையை விற்பனையாளராகத் தேர்வு செய்வது நல்ல யோசனையாகத் தெரியவில்லை… வேறு ஒன்றைத் தேர்வு செய்யவா?",
+    "cutscene-hint": "தொடர Space / Enter ஐ அழுத்தவும் அல்லது கிளிக் செய்யவும்",
+    "truck-electric": "மின்சாரம்",
+    "truck-diesel": "டீசல்",
+    "truck-electric-desc": "மின்சார வாகனங்கள் அதிக ஜெனரேட்டர் சத்தத்தையும் நச்சுப் புகையையும் நீக்கி, உணவு வண்டிகள் அமைதியாகவும் சுத்தமாகவும் இயங்க உதவுகின்றன.",
+    "truck-diesel-desc": "டீசல் உணவு வண்டிகள் அதிக நச்சுத் துகள்களையும் தொடர்ச்சியான இயந்திரச் சத்தத்தையும் வெளியிடுகின்றன; இது வாடிக்கையாளர்களை விலக்கலாம்.",
+    "shop-farm-title": "உள்ளூர் பண்ணைகள்",
+    "shop-farm-message": "உள்ளூர் பண்ணைகளிலிருந்து வாங்குவது போக்குவரத்து தூரத்தைக் குறைத்து கார்பன் தடத்தையும் பிளாஸ்டிக் கழிவையும் குறைக்கிறது.",
+    "shop-market-title": "பெரிய சந்தைகள்",
+    "shop-market-message": "பெரிய சந்தைகளிலிருந்து வாங்குவது நீண்ட தூர போக்குவரத்தைச் சார்ந்தது; இது அதிக உமிழ்வையும் இரசாயனப் பாதுகாப்புப் பொருட்களையும் தேவைப்படுத்துகிறது.",
+    "day-label": "நாள்",
+    "save-label": "சேமி",
+    "slot-label": "இடம்",
+    "slot-empty": "காலி",
+    "save-action": "சேமி",
+    "load-action": "ஏற்று",
+    "delete-confirm": "இடத்தை நீக்கு",
+    "truck-confirm-eco": "சிறந்த தேர்வு! உங்கள் உணவு வண்டியின் கார்பன் தடத்தைக் குறைக்க உதவியுள்ளீர்கள்!",
+    "truck-confirm-diesel": "இது நல்ல தேர்வாகத் தெரியவில்லை. சுற்றுச்சூழலுக்கு ஏற்ற வண்டியைத் தேர்வு செய்யலாமே?",
   },
 };
 
@@ -398,25 +547,177 @@ function applyLanguage(lang) {
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
   document.documentElement.lang = lang;
 
-  // Translate all data-i18n elements
+
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.dataset.i18n;
     if (t[key] !== undefined) el.textContent = t[key];
   });
 
-  // Translate select options with data-i18n-opt
+
   document.querySelectorAll("[data-i18n-opt]").forEach((opt) => {
     const key = opt.dataset.i18nOpt;
     if (t[key] !== undefined) opt.textContent = t[key];
   });
 }
 
-/* ─────────────────────────────────────────────
-   APPLY SETTINGS — makes every control do
-   something real in the running game
-───────────────────────────────────────────── */
+function currentLanguage() {
+  return document.getElementById("lang")?.value || "en";
+}
+
+function localized(key, fallback = "") {
+  const lang = currentLanguage();
+  return TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en?.[key] ?? fallback;
+}
+
+function localizedTutorialText(key, fallback) {
+  return localized(key, fallback);
+}
+
+const LOCALIZED_LINES = {
+  en: {
+    serving: [
+      "This is the inside of your truck. Take a look around.",
+      "What do you think? Well, either way, you best get used to it. You're working here now.",
+      "Here's the counter. Your customers will be walking up to this window and placing an order.",
+      "Look, you've got your first customer already! Lucky you.",
+      "Don't keep them waiting! Let's take a look at what they want to order...",
+    ],
+    order: [
+      "In these few boxes, the ingredients your customer wants in their food is shown. ",
+      "Let's whip them up something nice, shall we?",
+    ],
+    kitchen: ["Click that triangular button down there, and let's get to cooking!"],
+    cooking: [
+      "Considering how you're still new to this, I've thrown in a little something for free.",
+      "Your truck is filled with ingredients for your first day on the job, you're welcome.",
+      "In case you're not familiar with how this works...",
+      "Start by memorizing your customer's order ingredients.",
+      "Then, you can go ahead and drag the ingredients into the pot over there.",
+      "When you've got everything, press the red button on the stove to start cooking.",
+      "Of course, if you put something in there by mistake, you can always click the white button next to it to clear your pot.",
+      "While cooking, be sure to click the meter when it's green!.",
+      "Unless... well... unless you're just really bad at cooking in general.",
+      "Anyways, once your ingredients run out, you can always click the shop icon to buy more.",
+      "You'll be using your own money though, of course. Be sure to make the right choice on who to buy from!",
+      "Oh, would you look at the time... I'm running late for a meeting.",
+      "All the best on your food truck business! Farewell, my friend.",
+    ],
+    dialogue: [
+      "Hello! FoodTruck Company here! If you are calling this number, I assume that you have seen our food truck advertisement.",
+      "Now, I'll spare you the boring formalities. Let's get straight to picking out a truck for your dream business!",
+    ],
+  },
+  ms: {
+    serving: [
+      "Ini bahagian dalam trak anda. Lihat sekeliling.",
+      "Apa pendapat anda? Walau apa pun, biasakan diri. Anda bekerja di sini sekarang.",
+      "Ini kaunter. Pelanggan akan datang ke tingkap ini untuk membuat pesanan.",
+      "Lihat, pelanggan pertama anda sudah tiba! Bertuahnya anda.",
+      "Jangan biarkan mereka menunggu! Mari lihat pesanan mereka...",
+    ],
+    order: [
+      "Bahan-bahan yang pelanggan mahu ditunjukkan dalam kotak-kotak ini. ",
+      "Mari masakkan sesuatu yang sedap untuk mereka!",
+    ],
+    kitchen: ["Klik butang segi tiga di bawah untuk mula memasak!"],
+    cooking: [
+      "Memandangkan anda masih baru, saya berikan sedikit bekalan secara percuma.",
+      "Trak anda dipenuhi bahan untuk hari pertama. Sama-sama.",
+      "Kalau anda belum biasa dengan cara ini...",
+      "Mulakan dengan mengingati bahan-bahan pesanan pelanggan.",
+      "Kemudian seret bahan-bahan itu ke dalam periuk.",
+      "Apabila semuanya tersedia, tekan butang merah di dapur untuk mula memasak.",
+      "Jika tersalah masukkan bahan, klik butang putih di sebelah periuk untuk mengosongkannya.",
+      "Semasa memasak, pastikan anda klik meter ketika ia berwarna hijau!.",
+      "Melainkan... anda memang kurang mahir memasak.",
+      "Apabila bahan habis, klik ikon kedai untuk membeli lagi.",
+      "Gunakan wang sendiri. Pilih pembekal dengan bijak!",
+      "Oh, sudah lewat... saya perlu pergi ke mesyuarat.",
+      "Semoga berjaya dengan perniagaan trak makanan anda! Selamat tinggal.",
+    ],
+    dialogue: [
+      "Helo! Syarikat FoodTruck di sini! Jika anda menelefon nombor ini, saya andaikan anda telah melihat iklan trak makanan kami.",
+      "Saya akan ringkaskan formaliti. Mari pilih trak untuk perniagaan impian anda!",
+    ],
+  },
+  zh: {
+    serving: [
+      "这里是你的餐车内部。四处看看吧。",
+      "你觉得怎么样？无论如何，最好尽快习惯这里。你现在就在这里工作了。",
+      "这是柜台。顾客会走到窗口来点餐。",
+      "看，你的第一位顾客已经来了！真幸运。",
+      "别让他们等太久！看看他们想点什么吧……",
+    ],
+    order: [
+      "顾客想要的食材会显示在这些小盒子里。 ",
+      "让我们为他们做一道美味的料理吧！",
+    ],
+    kitchen: ["点击下面的三角按钮，我们去做饭吧！"],
+    cooking: [
+      "既然你还是新手，我免费准备了一些食材。",
+      "你的餐车里有第一天工作所需的食材，不用客气。",
+      "如果你还不熟悉流程……",
+      "先记住顾客订单里的食材。",
+      "然后把食材拖进那边的锅里。",
+      "准备好后，按下炉子上的红色按钮开始烹饪。",
+      "如果放错了食材，可以点击旁边的白色按钮清空锅。",
+      "烹饪时，记得在指针变绿时点击！",
+      "除非……你真的不擅长做饭。",
+      "食材用完后，可以点击商店图标购买更多。",
+      "当然要用自己的钱。记得选对供应商！",
+      "时间过得真快……我得赶去开会了。",
+      "祝你的餐车生意顺利！再见，朋友。",
+    ],
+    dialogue: [
+      "你好！这里是FoodTruck公司！如果你打来这个号码，我想你应该看过我们的餐车广告。",
+      "不说无聊的客套话了。直接为你的梦想事业挑选一辆餐车吧！",
+    ],
+  },
+  ta: {
+    serving: [
+      "இதுதான் உங்கள் வண்டியின் உள்ளே. சுற்றிப் பாருங்கள்.",
+      "என்ன நினைக்கிறீர்கள்? எப்படியிருந்தாலும் இதற்குப் பழகுங்கள். இப்போது இங்கேதான் வேலை செய்கிறீர்கள்.",
+      "இதுதான் கவுண்டர். வாடிக்கையாளர்கள் இந்த ஜன்னலுக்கு வந்து ஆர்டர் செய்வார்கள்.",
+      "பாருங்கள், உங்கள் முதல் வாடிக்கையாளர் வந்துவிட்டார்! அதிர்ஷ்டம்.",
+      "அவர்களை காத்திருக்க வைக்காதீர்கள்! அவர்கள் என்ன ஆர்டர் செய்கிறார்கள் என்று பார்ப்போம்...",
+    ],
+    order: [
+      "வாடிக்கையாளர் விரும்பும் பொருட்கள் இந்தப் பெட்டிகளில் காட்டப்படும். ",
+      "அவர்களுக்கு சுவையான உணவு செய்வோம்!",
+    ],
+    kitchen: ["கீழே உள்ள முக்கோண பொத்தானைக் கிளிக் செய்து சமைக்கச் செல்லலாம்!"],
+    cooking: [
+      "நீங்கள் இன்னும் புதியவர் என்பதால், சில பொருட்களை இலவசமாக வைத்துள்ளேன்.",
+      "முதல் நாளுக்குத் தேவையான பொருட்கள் உங்கள் வண்டியில் உள்ளன.",
+      "இது எப்படி வேலை செய்கிறது என்று தெரியாவிட்டால்...",
+      "முதலில் வாடிக்கையாளர் ஆர்டரில் உள்ள பொருட்களை நினைவில் கொள்ளுங்கள்.",
+      "பிறகு பொருட்களை அங்குள்ள பாத்திரத்திற்குள் இழுத்துச் செல்லுங்கள்.",
+      "எல்லாம் தயாரானதும், அடுப்பில் உள்ள சிவப்பு பொத்தானை அழுத்துங்கள்.",
+      "தவறான பொருள் சென்றால், அருகிலுள்ள வெள்ளை பொத்தானை அழுத்தி பாத்திரத்தை காலி செய்யலாம்.",
+      "சமைக்கும் போது மீட்டர் பச்சையாக இருக்கும்போது கிளிக் செய்யுங்கள்!.",
+      "இல்லையெனில்... நீங்கள் சமைப்பதில் மிகவும் மோசமாக இருக்கலாம்.",
+      "பொருட்கள் தீர்ந்ததும் கடைச் சின்னத்தைக் கிளிக் செய்து வாங்கலாம்.",
+      "உங்கள் சொந்தப் பணத்தைப் பயன்படுத்த வேண்டும். சரியான விற்பனையாளரைத் தேர்வு செய்யுங்கள்!",
+      "நேரம் ஆகிவிட்டதே... கூட்டத்திற்குச் செல்ல வேண்டும்.",
+      "உங்கள் உணவு வண்டி வணிகத்திற்கு வாழ்த்துகள்! விடைபெறுகிறேன்.",
+    ],
+    dialogue: [
+      "வணக்கம்! FoodTruck நிறுவனத்திலிருந்து அழைக்கிறோம்! இந்த எண்ணுக்கு அழைத்திருந்தால் எங்கள் உணவு வண்டி விளம்பரத்தைப் பார்த்திருப்பீர்கள்.",
+      "சலிப்பான சம்பிரதாயங்களை விட்டுவிடலாம். உங்கள் கனவு வணிகத்திற்கான வண்டியைத் தேர்வு செய்வோம்!",
+    ],
+  },
+};
+
+function localizedLines(key, fallback) {
+  return LOCALIZED_LINES[currentLanguage()]?.[key] || fallback;
+}
+
+
+
+
+
 function applySettings() {
-  // ── Volume ──────────────────────────────────
+
   const masterVol =
     parseFloat(document.getElementById("master-vol")?.value ?? 80) / 100;
   const musicVol =
@@ -425,27 +726,27 @@ function applySettings() {
     parseFloat(document.getElementById("sfx-vol")?.value ?? 90) / 100;
   const muted = document.getElementById("mute-toggle")?.checked ?? false;
 
-  // Music tracks
+
   Object.values(SCREEN_MUSIC).forEach((track) => {
     if (!track) return;
     track.volume = muted ? 0 : masterVol * musicVol;
   });
 
-  // All SFX elements (both ui sfx and cutscene sfx)
+
   document.querySelectorAll('audio[id^="sfx-"]').forEach((el) => {
     el.volume = muted ? 0 : masterVol * sfxVol;
   });
 
-  // ── Language ────────────────────────────────
+
   const lang = document.getElementById("lang")?.value ?? "en";
   applyLanguage(lang);
 
-  // ── Text size ───────────────────────────────
+
   const textSize = document.getElementById("text-size")?.value ?? "medium";
   document.body.classList.remove("text-small", "text-medium", "text-large");
   document.body.classList.add(`text-${textSize}`);
 
-  // ── Colour-blind filter ─────────────────────
+
   const cb = document.getElementById("colorblind")?.value ?? "none";
   const cbFilters = {
     none: "",
@@ -456,7 +757,7 @@ function applySettings() {
   };
   document.getElementById("game-container").style.filter = cbFilters[cb] ?? "";
 
-  // ── High contrast ───────────────────────────
+
   const hiContrast = document.getElementById("high-contrast")?.checked ?? false;
   document.body.classList.toggle("high-contrast", hiContrast);
 }
@@ -476,26 +777,27 @@ function saveSettings() {
 function loadSettings() {
   try {
     const raw = localStorage.getItem("rar_settings");
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    Object.entries(data).forEach(([id, val]) => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      if (el.type === "checkbox") {
-        el.checked = val;
-      } else {
-        el.value = val;
-      }
-      const valEl = document.getElementById(`${id}-val`);
-      if (valEl) valEl.textContent = val;
-    });
+    if (raw) {
+      const data = JSON.parse(raw);
+      Object.entries(data).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.type === "checkbox") {
+          el.checked = val;
+        } else {
+          el.value = val;
+        }
+        const valEl = document.getElementById(`${id}-val`);
+        if (valEl) valEl.textContent = val;
+      });
+    }
   } catch (_) {}
   applySettings();
 }
 
-/* ─────────────────────────────────────────────
-   SAVE / LOAD MODAL
-───────────────────────────────────────────── */
+
+
+
 const SLOT_COUNT = 3;
 
 function getSaveSlots() {
@@ -573,20 +875,20 @@ function renderSaveSlots() {
 
     const numEl = document.createElement("div");
     numEl.className = "slot-number";
-    numEl.textContent = `Slot ${i + 1}`;
+    numEl.textContent = `${localized("slot-label", "Slot")} ${i + 1}`;
 
     const infoEl = document.createElement("div");
     infoEl.className = "slot-info";
     infoEl.textContent = slot
-      ? `Day ${slot.day || 1} · ${formatDate(slot.savedAt)}`
-      : "Empty";
+      ? `${localized("day-label", "DAY")} ${slot.day || 1} · ${formatDate(slot.savedAt)}`
+      : localized("slot-empty", "Empty");
 
     const btnsEl = document.createElement("div");
     btnsEl.className = "slot-btns";
 
     const saveBtn = document.createElement("button");
     saveBtn.className = "slot-btn";
-    saveBtn.textContent = "💾 Save";
+    saveBtn.textContent = `💾 ${localized("save-action", "Save")}`;
     saveBtn.addEventListener("click", () => {
       playUiSfx("click");
       saveGameToSlot(i);
@@ -595,7 +897,7 @@ function renderSaveSlots() {
 
     const loadBtn = document.createElement("button");
     loadBtn.className = "slot-btn";
-    loadBtn.textContent = "▶ Load";
+    loadBtn.textContent = `▶ ${localized("load-action", "Load")}`;
     loadBtn.disabled = !slot;
     loadBtn.addEventListener("click", () => {
       if (!slot) return;
@@ -610,7 +912,7 @@ function renderSaveSlots() {
     delBtn.addEventListener("click", () => {
       if (!slot) return;
       playUiSfx("click");
-      if (!confirm(`Delete Slot ${i + 1}?`)) return;
+      if (!confirm(`${localized("delete-confirm", "Delete Slot")} ${i + 1}?`)) return;
       const updated = getSaveSlots();
       updated[i] = null;
       writeSaveSlots(updated);
@@ -644,10 +946,10 @@ document.getElementById("load-modal").addEventListener("click", function (e) {
   }
 });
 
-/* ─────────────────────────────────────────────
-   CUTSCENE ENGINE
-   Sequence: cutscene1 → getajob → flyerpapers → cutscene2 → cutscene5
-───────────────────────────────────────────── */
+
+
+
+
 const CUTSCENE_ORDER = [
   "cs-cutscene1",
   "cs-getajob",
@@ -709,9 +1011,9 @@ function endCutscene() {
   });
 }
 
-/* ─────────────────────────────────────────────
-   SCENE TRANSITION HELPER
-───────────────────────────────────────────── */
+
+
+
 function fadeToScene(targetScreenId, swapFn) {
   const overlay = document.getElementById("scene-transition");
   overlay.classList.add("fading");
@@ -722,7 +1024,7 @@ function fadeToScene(targetScreenId, swapFn) {
   }, 780);
 }
 
-// Click / keyboard advances the cutscene
+
 document
   .getElementById("cutscene-screen")
   .addEventListener("click", advanceCutscene);
@@ -737,9 +1039,9 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-/* ─────────────────────────────────────────────
-   SCENE 2 — desk scene  (phone on table)
-───────────────────────────────────────────── */
+
+
+
 const phoneHit = document.getElementById("hit-phone");
 const phoneImg = document.getElementById("scene2-phone");
 
@@ -763,19 +1065,19 @@ phoneHit.addEventListener("click", () => {
   fadeToScene("phone-screen");
 });
 
-/* ─────────────────────────────────────────────
-   PHONE SCENE — dial-pad state machine
-───────────────────────────────────────────── */
-const CORRECT_NUMBER = "01167023154"; // 011-6702-3154
-const PHONE_SFX_COUNT = 5;
-const MAX_PHONE_INPUT = 11; // length of correct number
 
-let phoneState = "dialing"; // 'dialing' | 'calling' | 'ringing'
+
+
+const CORRECT_NUMBER = "01167023154";
+const PHONE_SFX_COUNT = 5;
+const MAX_PHONE_INPUT = 11;
+
+let phoneState = "dialing";
 let phoneInput = "";
 let lastPhoneSfxIdx = -1;
 let phoneRingTimer = null;
 
-// ── Button definitions ─────────────────────
+
 const PHONE_BTN_DEFS = [
   { key: "1", id: "pbtn-1" },
   { key: "2", id: "pbtn-2" },
@@ -792,14 +1094,14 @@ const PHONE_BTN_DEFS = [
   { key: "call", id: "pbtn-call" },
 ];
 
-// Build PixelButton instances for every phone button
+
 const phonePixelBtns = PHONE_BTN_DEFS.map((def) => {
   const img = document.getElementById(def.id);
   const pb = new PixelButton(img, def.key);
   return pb;
 });
 
-// ── Helpers ────────────────────────────────
+
 function formatPhoneDisplay(digits) {
   if (digits.length <= 3) return digits;
   if (digits.length <= 7) return digits.slice(0, 3) + "-" + digits.slice(3);
@@ -838,7 +1140,7 @@ function resetPhoneScene() {
   lastPhoneSfxIdx = -1;
   setPhoneState("dialing");
   updatePhoneDisplay();
-  // Silence any lingering ring
+
   const ringSfx = document.getElementById("sfx-phone-ring");
   if (ringSfx) {
     ringSfx.pause();
@@ -863,8 +1165,8 @@ function handlePhoneKey(key) {
   if (phoneState !== "dialing") return;
 
   if (key === "call") {
-    if (phoneInput !== CORRECT_NUMBER) return; // wrong number — no response
-    // Correct! → calling → ringing → fade to black when ring ends
+    if (phoneInput !== CORRECT_NUMBER) return;
+
     setPhoneState("calling");
     phoneRingTimer = setTimeout(() => {
       setPhoneState("ringing");
@@ -872,7 +1174,7 @@ function handlePhoneKey(key) {
       if (ringSfx) {
         ringSfx.currentTime = 0;
         ringSfx.play().catch(() => {});
-        // Show dialogue once the ring sound finishes
+
         ringSfx.addEventListener(
           "ended",
           () => {
@@ -885,7 +1187,7 @@ function handlePhoneKey(key) {
     return;
   }
 
-  // Backspace key (mapped to * button)
+
   if (key === "backspace") {
     if (phoneInput.length === 0) return;
     phoneInput = phoneInput.slice(0, -1);
@@ -893,17 +1195,17 @@ function handlePhoneKey(key) {
     return;
   }
 
-  // Digit / symbol key
+
   if (phoneInput.length >= MAX_PHONE_INPUT) return;
   phoneInput += key;
   updatePhoneDisplay();
   playPhoneKeySfx();
 }
 
-// ── Phone-screen mouse/click routing ──────
+
 const phoneScreen = document.getElementById("phone-screen");
 
-// X shift of 63px corrects the translateX(9.10%) CSS offset on .phone-btn-img
+
 const PHONE_BTN_XSHIFT = 63;
 
 phoneScreen.addEventListener("mousemove", (e) => {
@@ -954,18 +1256,19 @@ phoneScreen.addEventListener("click", (e) => {
   }
 });
 
-/* ─────────────────────────────────────────────
-   DIALOGUE SYSTEM — phone-call cutscene
-   Triggered after the ring sound ends.
-   Click the box to skip/advance; after the last
-   line the scene fades to black.
-───────────────────────────────────────────── */
+
+
+
+
+
+
 const DIALOGUE_LINES = [
   "Hello! FoodTruck Company here! If you are calling this number, I assume that you have seen our food truck advertisement.",
   "Now, I'll spare you the boring formalities. Let's get straight to picking out a truck for your dream business!",
 ];
+let activeDialogueLines = DIALOGUE_LINES;
 
-const TYPEWRITER_MS = 32; // ms between characters
+const TYPEWRITER_MS = 32;
 
 let _dlgLineIdx = 0;
 let _dlgCharIdx = 0;
@@ -974,15 +1277,16 @@ let _dlgTimer = null;
 
 function showDialogue() {
   _dlgLineIdx = 0;
+  activeDialogueLines = localizedLines("dialogue", DIALOGUE_LINES);
   const overlay = document.getElementById("dialogue-overlay");
   overlay.classList.remove("hidden");
-  // Clicking anywhere on the box advances / skips
+
   document
     .getElementById("dialogue-box-wrap")
     .addEventListener("click", advanceDialogue);
-  // Cursor should show as "point" over the box — tell the screen element
+
   phoneScreen.style.cursor = "pointer";
-  _typeDialogueLine(DIALOGUE_LINES[0]);
+  _typeDialogueLine(activeDialogueLines[0]);
 }
 
 function _typeDialogueLine(text) {
@@ -1004,20 +1308,20 @@ function _typeDialogueLine(text) {
 
 function advanceDialogue() {
   if (_dlgTyping) {
-    // Skip to end of current line instantly
+
     clearTimeout(_dlgTimer);
     _dlgTimer = null;
     _dlgTyping = false;
     document.getElementById("dialogue-text").textContent =
-      DIALOGUE_LINES[_dlgLineIdx];
+      activeDialogueLines[_dlgLineIdx];
     return;
   }
 
   _dlgLineIdx++;
-  if (_dlgLineIdx < DIALOGUE_LINES.length) {
-    _typeDialogueLine(DIALOGUE_LINES[_dlgLineIdx]);
+  if (_dlgLineIdx < activeDialogueLines.length) {
+    _typeDialogueLine(activeDialogueLines[_dlgLineIdx]);
   } else {
-    // All lines done — hide box, fade to truck selection
+
     document.getElementById("dialogue-overlay").classList.add("hidden");
     document
       .getElementById("dialogue-box-wrap")
@@ -1027,31 +1331,44 @@ function advanceDialogue() {
   }
 }
 
-/* ─────────────────────────────────────────────
-   AUDIO — music + SFX
-───────────────────────────────────────────── */
 
-// ── Music tracks ────────────────────────────
+
+
+
+
 const menuMusic = document.getElementById("menu-music");
 const scene2Music = document.getElementById("scene2-music");
+const workingMusic = document.getElementById("working-music");
 
 const SCREEN_MUSIC = {
   "menu-screen": menuMusic,
   "scene2-screen": scene2Music,
   "phone-screen": scene2Music,
-  "truck-select-screen": scene2Music, // continues from phone scene uninterrupted
+  "truck-select-screen": scene2Music,
+  "serving-screen": workingMusic,
+  "cooking-screen": workingMusic,
+  "shop-screen": workingMusic,
+  "purchasing-screen": workingMusic,
+  "day-summary-screen": workingMusic,
 };
 
-// Track which screen's music should be playing so the autoplay
-// fallback can resume the *right* track after user interaction.
+
+
 let _currentTrack = null;
 
 function playTrack(audio) {
   if (!audio) return;
+  const tracks = [...new Set(Object.values(SCREEN_MUSIC).filter(Boolean))];
+  tracks.forEach((track) => {
+    if (track !== audio) {
+      track.pause();
+      track.currentTime = 0;
+    }
+  });
   _currentTrack = audio;
   audio.currentTime = 0;
   audio.play().catch(() => {
-    // Autoplay blocked — wait for any interaction then retry
+
     const resume = () => {
       if (_currentTrack === audio) {
         audio.play().catch(() => {});
@@ -1071,11 +1388,11 @@ function stopAllMusic() {
   _currentTrack = null;
 }
 
-// Full showScreen — handles both DOM switching and per-screen music.
-// Skips restarting the track if the same one is already playing
-// (e.g. scene2 → phone-screen both use scene2Music).
+
+
+
 function showScreen(id) {
-  // eslint-disable-line no-redeclare
+
   _setActiveScreen(id);
   const hud = document.getElementById('game-hud');
   if (hud) {
@@ -1097,9 +1414,9 @@ function showScreen(id) {
   }
 }
 
-/* ─────────────────────────────────────────────
-   SHOP + PURCHASING
-───────────────────────────────────────────── */
+
+
+
 const SHOP_ITEMS = [
   { key: 'lettuce', stockKey: 'cabbage', source: 'assets/full_ingredients/cabbage.png', price: 1 },
   { key: 'tomato', stockKey: 'tomatoes', source: 'assets/full_ingredients/tomato.png', price: 1 },
@@ -1186,15 +1503,17 @@ function initShopScreen() {
     }
   };
   document.getElementById('hit-shop-info-farm').onclick = () => {
-    document.getElementById('shop-info-title').textContent = 'Local farms';
+    document.getElementById('shop-info-title').textContent =
+      localized('shop-farm-title', 'Local farms');
     document.getElementById('shop-info-message').textContent =
-      'Sourcing from local farms reduces the carbon footprint by cutting down on transport distances and minimizes plastic packaging waste common in hypermarkets.';
+      localized('shop-farm-message', 'Sourcing from local farms reduces the carbon footprint.');
     showModal('shop-info-modal');
   };
   document.getElementById('hit-shop-info-market').onclick = () => {
-    document.getElementById('shop-info-title').textContent = 'Hypermarkets';
+    document.getElementById('shop-info-title').textContent =
+      localized('shop-market-title', 'Hypermarkets');
     document.getElementById('shop-info-message').textContent =
-      'Sourcing from hypermarkets relies on long-distance logistics that generate high transport emissions and requires excessive chemical preservatives to keep food fresh during transit.';
+      localized('shop-market-message', 'Sourcing from hypermarkets creates higher transport emissions.');
     showModal('shop-info-modal');
   };
 }
@@ -1241,7 +1560,7 @@ function initPurchasingScreen() {
 }
 
 function purchaseItem(item) {
-  // Cart quantities are kept separate from the kitchen inventory until checkout.
+
   initIngredientStock();
   const currentStock = ingredientStock[item.stockKey] || 0;
   if (currentStock + purchaseQuantities[item.key] >= purchaseMaxStock(item)) return;
@@ -1325,10 +1644,10 @@ document.getElementById('last_page').addEventListener('click', () => {
   document.getElementById('hit-purchase-exit').classList.remove('hidden');
 });
 
-// Start menu music immediately on load
+
 playTrack(menuMusic);
 
-// ── SFX (cutscene frames) ────────────────────
+
 const CUTSCENE_SFX = {
   "cs-cutscene1": "sfx-angry-meow",
   "cs-flyerpapers": "sfx-paperslam",
@@ -1342,11 +1661,11 @@ function playSfx(id) {
   el.play().catch(() => {});
 }
 
-/* ─────────────────────────────────────────────
-   CUSTOM CURSOR
-   neutral → default, point → hovering something
-   clickable, grab → briefly on mousedown.
-───────────────────────────────────────────── */
+
+
+
+
+
 (function () {
   const cursorEl = document.getElementById("custom-cursor");
   const cursorImg = document.getElementById("cursor-img");
@@ -1358,7 +1677,7 @@ function playSfx(id) {
     grab: "assets/pointer/grab.png",
   };
 
-  // Preload all three so swaps are instant
+
   Object.values(CURSORS).forEach((src) => {
     const img = new Image();
     img.src = src;
@@ -1376,10 +1695,10 @@ function playSfx(id) {
     cursorImg.src = CURSORS[s];
   }
 
-  /** Returns true if the element (or any ancestor) would normally show a pointer. */
+
   function isPointerTarget(el) {
-    // cursor:none !important is forced everywhere, so getComputedStyle always
-    // returns 'none'. Check element types, classes, and id patterns instead.
+
+
     while (el && el !== document.documentElement) {
       const tag = el.tagName;
       if (
@@ -1401,29 +1720,29 @@ function playSfx(id) {
         cl.contains("toggle-switch")
       )
         return true;
-      // Catch all invisible hit-area divs (hit-phone, hit-truck, hit-title, …)
+
       if (el.id && el.id.startsWith("hit-")) return true;
-      // Dialogue box is clickable when visible
+
       if (el.id === "dialogue-box-wrap") return true;
       el = el.parentElement;
     }
     return false;
   }
 
-  /** Returns true if any modal overlay is currently visible. */
+
   function isModalOpen() {
     return !!document.querySelector(".modal-overlay:not(.hidden)");
   }
 
-  /** True when the mouse is inside the game container rect. */
+
   function isOverGame(cx, cy) {
     const r = gameContainer.getBoundingClientRect();
     return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
   }
 
-  /** Decide neutral vs point for the current mouse position. */
+
   function resolveHoverState(clientX, clientY) {
-    // Pixel buttons set an inline style on the active screen element
+
     const activeScreen = document.querySelector(".screen.active");
     if (activeScreen && activeScreen.style.cursor === "pointer") return "point";
 
@@ -1437,13 +1756,13 @@ function playSfx(id) {
     _lastX = e.clientX;
     _lastY = e.clientY;
 
-    // Show cursor only over the game window or an open modal
+
     if (!isOverGame(e.clientX, e.clientY) && !isModalOpen()) {
       cursorEl.style.display = "none";
       return;
     }
 
-    // Position: fixed element — clientX/Y map directly to viewport coords
+
     cursorEl.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
     cursorEl.style.display = "block";
 
@@ -1455,7 +1774,7 @@ function playSfx(id) {
     cursorEl.style.display = "none";
   });
 
-  // Flash grab on any click inside game or modal
+
   document.addEventListener("mousedown", (e) => {
     if (!isOverGame(e.clientX, e.clientY) && !isModalOpen()) return;
     _holding = true;
@@ -1471,22 +1790,22 @@ function playSfx(id) {
   });
 })();
 
-/* ─────────────────────────────────────────────
-   TRUCK SELECTION SCENE
-───────────────────────────────────────────── */
+
+
+
 const TS_TEXTS = {
   eco: "Electric vehicles eliminate loud generator noise and toxic exhaust fumes, enabling food trucks to operate quietly and cleanly right next to customers.",
   diesel:
     "Diesel-powered food trucks emit high levels of toxic particulate matter and create constant loud engine noise, which can drive customers away and further pollute the environment.",
 };
 
-let _tsTruck = "eco"; // 'eco' | 'diesel'
+let _tsTruck = "eco";
 let _tsSwitching = false;
 let _tsTyping = false;
 let _tsTimer = null;
 let _tsCharIdx = 0;
 
-// ── Hit-area position tables ────────────────
+
 const TS_HITS = {
   eco: { textLeft: "4%", textWidth: "40%", arrowLeft: "44%", arrowWidth: "6%" },
   diesel: {
@@ -1507,7 +1826,7 @@ function _tsUpdateHits() {
   ah.style.width = h.arrowWidth;
 }
 
-// ── Clipboard typewriter ─────────────────────
+
 function _tsType(text) {
   if (_tsTimer) {
     clearTimeout(_tsTimer);
@@ -1529,7 +1848,7 @@ function _tsType(text) {
   })();
 }
 
-// ── Slide animation ──────────────────────────
+
 function tsSwitchTruck() {
   if (_tsSwitching) return;
   _tsSwitching = true;
@@ -1545,16 +1864,16 @@ function tsSwitchTruck() {
   const exitX = toDiesel ? "-30%" : "30%";
   const enterX = toDiesel ? "30%" : "-30%";
 
-  // Slide out current truck
+
   outEl.style.transform = `translateX(${exitX})`;
   outEl.style.opacity = "0";
 
-  // Place incoming truck off-screen instantly (no transition)
+
   inEl.style.transition = "none";
   inEl.style.transform = `translateX(${enterX})`;
   inEl.style.opacity = "0";
-  inEl.style.display = "block"; // must be explicit — CSS default is 'none' for diesel
-  // Force reflow, then re-enable transition and animate in
+  inEl.style.display = "block";
+
   inEl.getBoundingClientRect();
   inEl.style.transition = "";
   inEl.style.transform = "";
@@ -1566,14 +1885,20 @@ function tsSwitchTruck() {
     outEl.style.opacity = "1";
     _tsTruck = toDiesel ? "diesel" : "eco";
     nameImg.src = `assets/truck_selection/${_tsTruck === "eco" ? "eco" : "diesel"}truck_name.png`;
-    label.textContent = _tsTruck === "eco" ? "Electric" : "Diesel";
+    label.textContent = localized(
+      _tsTruck === "eco" ? "truck-electric" : "truck-diesel",
+      _tsTruck === "eco" ? "Electric" : "Diesel",
+    );
     _tsUpdateHits();
-    _tsType(TS_TEXTS[_tsTruck]);
+    _tsType(localized(
+      _tsTruck === "eco" ? "truck-electric-desc" : "truck-diesel-desc",
+      TS_TEXTS[_tsTruck],
+    ));
     _tsSwitching = false;
   }, 450);
 }
 
-// ── Initialise the scene ─────────────────────
+
 function initTruckSelection() {
   _tsTruck = "eco";
   _tsSwitching = false;
@@ -1581,7 +1906,7 @@ function initTruckSelection() {
   const ecoEl = document.getElementById("ts-eco-truck");
   const dieselEl = document.getElementById("ts-diesel-truck");
 
-  // Reset eco truck to visible, diesel hidden
+
   [ecoEl, dieselEl].forEach((el) => {
     el.style.transition = "none";
     el.style.transform = "";
@@ -1589,19 +1914,20 @@ function initTruckSelection() {
   });
   ecoEl.style.display = "";
   dieselEl.style.display = "none";
-  // Re-enable transitions after reset
+
   ecoEl.getBoundingClientRect();
   ecoEl.style.transition = "";
   dieselEl.style.transition = "";
 
   document.getElementById("ts-name-img").src =
     "assets/truck_selection/ecotruck_name.png";
-  document.getElementById("ts-truck-label").textContent = "Electric";
+  document.getElementById("ts-truck-label").textContent =
+    localized("truck-electric", "Electric");
   _tsUpdateHits();
-  _tsType(TS_TEXTS.eco);
+  _tsType(localized("truck-electric-desc", TS_TEXTS.eco));
 }
 
-// ── Select / confirm truck ───────────────────
+
 function tsSelectTruck() {
   playUiSfx("click");
   const modal = document.getElementById("truck-confirm-modal");
@@ -1612,8 +1938,10 @@ function tsSelectTruck() {
   btns.style.justifyContent = "";
 
   if (_tsTruck === "eco") {
-    msg.textContent =
-      "Great choice! You've helped reduce your food truck's carbon footprint!";
+    msg.textContent = localized(
+      "truck-confirm-eco",
+      "Great choice! You've helped reduce your food truck's carbon footprint!",
+    );
 
     const noBtn = document.createElement("button");
     noBtn.className = "footer-btn";
@@ -1634,8 +1962,10 @@ function tsSelectTruck() {
 
     btns.append(noBtn, yesBtn);
   } else {
-    msg.textContent =
-      "Hmm, that doesn't seem like a good option. Why not try choosing the more eco-friendly truck?";
+    msg.textContent = localized(
+      "truck-confirm-diesel",
+      "Hmm, that doesn't seem like a good option. Why not try choosing the more eco-friendly truck?",
+    );
     btns.style.justifyContent = "center";
 
     const okBtn = document.createElement("button");
@@ -1652,7 +1982,7 @@ function tsSelectTruck() {
   showModal("truck-confirm-modal");
 }
 
-// ── Event listeners ──────────────────────────
+
 document
   .getElementById("hit-ts-text")
   .addEventListener("click", () => tsSelectTruck());
@@ -1661,7 +1991,7 @@ document.getElementById("hit-ts-arrow").addEventListener("click", () => {
   tsSwitchTruck();
 });
 
-// Hover feedback — brighten/dim the name image
+
 (function () {
   const nameImg = document.getElementById("ts-name-img");
   ["hit-ts-text", "hit-ts-arrow"].forEach((id) => {
@@ -1681,9 +2011,9 @@ document.getElementById("hit-ts-arrow").addEventListener("click", () => {
   });
 })();
 
-/* ─────────────────────────────────────────────
-   SERVING SCREEN — TUTORIAL DIALOGUE
-───────────────────────────────────────────── */
+
+
+
 const SERVING_TUT_LINES = [
   "This is the inside of your truck. Take a look around.",
   "What do you think? Well, either way, you best get used to it. You're working here now.",
@@ -1708,7 +2038,9 @@ function initServingScene() {
   const wrap = document.getElementById("serving-tutorial-wrap");
   wrap.addEventListener("click", _stAdvance);
 
-  _stTypeServingLine(SERVING_TUT_LINES[0]);
+
+
+  _stTypeServingLine(localizedLines("serving", SERVING_TUT_LINES)[0]);
 }
 
 function _stTypeServingLine(text) {
@@ -1729,25 +2061,26 @@ function _stTypeServingLine(text) {
 }
 
 function _stAdvance() {
+  const lines = localizedLines("serving", SERVING_TUT_LINES);
   if (_stTyping) {
     clearTimeout(_stTimer);
     _stTimer = null;
     _stTyping = false;
     document.getElementById("serving-tut-text").textContent =
-      SERVING_TUT_LINES[_stLineIdx];
+      lines[_stLineIdx];
     return;
   }
 
-  // After "Lucky you" (line 3), spawn the first customer
+
   if (_stLineIdx === 3) {
     document.dispatchEvent(new CustomEvent("newCustomer"));
   }
 
   _stLineIdx++;
-  if (_stLineIdx < SERVING_TUT_LINES.length) {
-    _stTypeServingLine(SERVING_TUT_LINES[_stLineIdx]);
+  if (_stLineIdx < lines.length) {
+    _stTypeServingLine(lines[_stLineIdx]);
   } else {
-    // Tutorial done — hide bubble, show order box
+
     const tutWrap = document.getElementById("serving-tutorial-wrap");
     tutWrap.classList.add("hidden");
     tutWrap.style.display = "none";
@@ -1756,9 +2089,9 @@ function _stAdvance() {
   }
 }
 
-/* ─────────────────────────────────────────────
-   CUSTOMER SPAWNING
-───────────────────────────────────────────── */
+
+
+
 const CUSTOMER_TYPES = [
   "calico",
   "siamese",
@@ -1773,7 +2106,7 @@ const CUSTOMER_TYPES = [
 const _spriteTimers = [];
 let _activeCustomerType = 'calico';
 
-// Diet per customer type (all current cats are omnivore)
+
 const CUSTOMER_DIET = {
   calico: 'omnivore', siamese: 'omnivore', tabby: 'omnivore', tuxedo: 'omnivore',
   brownbunny: 'herbivore',
@@ -1902,7 +2235,7 @@ function startDayIntro(day) {
   resetDayState();
   const overlay = document.getElementById('day-intro-overlay');
   const label = document.getElementById('day-intro-label');
-  label.textContent = `DAY ${dayNumber}`;
+  label.textContent = `${localized("day-label", "DAY")} ${dayNumber}`;
   overlay.classList.remove('hidden', 'label-visible', 'label-fading');
   overlay.classList.add('visible');
 
@@ -1938,7 +2271,7 @@ document.getElementById('day-summary-screen').addEventListener('click', () => {
 function showOrderBox(customerType, withTutorial = true) {
   const dish  = _randomDish(customerType);
   currentOrderDish = dish;
-  const slots = [...dish.ingredients, dish.base]; // e.g. ['egg','corn','rice'] = 3 boxes
+  const slots = [...dish.ingredients, dish.base];
 
   const wrap    = document.getElementById('order-box-wrap');
   const boxImg  = document.getElementById('order-box-img');
@@ -1967,9 +2300,9 @@ function showOrderBox(customerType, withTutorial = true) {
   }
 }
 
-/* ─────────────────────────────────────────────
-   ORDER BOX TUTORIAL + KITCHEN ARROW
-───────────────────────────────────────────── */
+
+
+
 const OB_TUT_LINES = [
   "In these few boxes, the ingredients your customer wants in their food is shown. ",
   "Let's whip them up something nice, shall we?",
@@ -2004,6 +2337,7 @@ let cookingTutorialLineIdx = 0;
 let cookingTutorialCharIdx = 0;
 let cookingTutorialTyping = false;
 let cookingTutorialTimer = null;
+let cookingTutorialLines = COOKING_TUT_LINES;
 
 function _showServingTutWrap() {
   const wrap = document.getElementById('serving-tutorial-wrap');
@@ -2062,7 +2396,7 @@ function _startTutDialogue(lines, onDone) {
 }
 
 function startOrderBoxTutorial() {
-  _startTutDialogue(OB_TUT_LINES, showKitchenArrow);
+  _startTutDialogue(localizedLines("order", OB_TUT_LINES), showKitchenArrow);
 }
 
 function showKitchenArrow() {
@@ -2071,8 +2405,10 @@ function showKitchenArrow() {
   arrow.classList.add('bob-anim');
   arrow.addEventListener('click', goToKitchen, { once: true });
 
-  // Delay so the dismissal click doesn't immediately fire the new listener
-  setTimeout(() => _startTutDialogue(KITCHEN_TUT_LINES, null), 50);
+
+  setTimeout(() => {
+    _startTutDialogue(localizedLines("kitchen", KITCHEN_TUT_LINES), null);
+  }, 50);
 }
 
 function goToKitchen() {
@@ -2090,11 +2426,12 @@ function startCookingTutorial() {
   cookingTutorialShown = true;
   cookingTutorialLineIdx = 0;
   cookingTutorialTyping = false;
+  cookingTutorialLines = localizedLines("cooking", COOKING_TUT_LINES);
   const overlay = document.getElementById('cooking-tutorial-overlay');
   const speech = document.getElementById('cooking-tutorial-speech');
   overlay.classList.remove('hidden');
   speech.addEventListener('click', advanceCookingTutorial);
-  typeCookingTutorialLine(COOKING_TUT_LINES[0]);
+  typeCookingTutorialLine(cookingTutorialLines[0]);
 }
 
 function typeCookingTutorialLine(text) {
@@ -2119,13 +2456,13 @@ function advanceCookingTutorial() {
     cookingTutorialTimer = null;
     cookingTutorialTyping = false;
     document.getElementById('cooking-tutorial-text').textContent =
-      COOKING_TUT_LINES[cookingTutorialLineIdx];
+      cookingTutorialLines[cookingTutorialLineIdx];
     return;
   }
 
   cookingTutorialLineIdx++;
-  if (cookingTutorialLineIdx < COOKING_TUT_LINES.length) {
-    typeCookingTutorialLine(COOKING_TUT_LINES[cookingTutorialLineIdx]);
+  if (cookingTutorialLineIdx < cookingTutorialLines.length) {
+    typeCookingTutorialLine(cookingTutorialLines[cookingTutorialLineIdx]);
     return;
   }
 
@@ -2134,9 +2471,9 @@ function advanceCookingTutorial() {
   document.getElementById('cooking-tutorial-overlay').classList.add('hidden');
 }
 
-/* ─────────────────────────────────────────────
-   COOKING SCREEN
-───────────────────────────────────────────── */
+
+
+
 function initCookingScreen() {
   initIngredientStock();
   setCookingSlide(1);
@@ -2291,8 +2628,8 @@ function startIngredientDrag(name, event) {
   copy.src = name === 'rice'
     ? source.src
     : (FULL_INGREDIENT_SOURCES[name] || `assets/full_ingredients/${canonicalIngredient(name)}.png`);
-  // Rice keeps its full-scene cooking sprite. Egg and noodles use their
-  // standalone full_ingredients sprites like the regular ingredients.
+
+
   const isFullSceneIngredient = ['rice'].includes(name);
   copy.className = `dragged-ingredient dragged-${name}${isFullSceneIngredient ? '' : ' dragged-full-ingredient'}`;
   copy.draggable = false;
@@ -2316,23 +2653,23 @@ function startIngredientDrag(name, event) {
 function moveIngredientDrag(event) {
   if (!activeIngredientDrag) return;
   const gameRect = document.getElementById('game-container').getBoundingClientRect();
-  // The game layer is already laid out in rendered CSS pixels. Keep the
-  // pointer delta in that same coordinate system.
+
+
   const dx = event.clientX - activeIngredientDrag.startX;
   const dy = event.clientY - activeIngredientDrag.startY;
 
   if (activeIngredientDrag.isFullIngredient) {
-    // Standalone full_ingredients sprites should start at the source hit area
-    // and move with it, instead of being drawn from the pot layer's origin.
-    // Preserve the point where the player grabbed the ingredient.
+
+
+
     activeIngredientDrag.copy.style.left =
       `${activeIngredientDrag.sourceRect.left - gameRect.left + dx - activeIngredientDrag.grabOffsetX}px`;
     activeIngredientDrag.copy.style.top =
       `${activeIngredientDrag.sourceRect.top - gameRect.top + dy - activeIngredientDrag.grabOffsetY}px`;
     activeIngredientDrag.copy.style.transform = 'none';
   } else {
-    // Full-scene rice and egg sprites retain their existing origin/clip
-    // behavior, so the copied image moves as one complete cooking layer.
+
+
     activeIngredientDrag.copy.style.left = '0';
     activeIngredientDrag.copy.style.top = '0';
     activeIngredientDrag.copy.style.transform = `translate(${dx}px, ${dy}px)`;
@@ -2520,8 +2857,8 @@ function advanceCustomerQueue() {
   document.getElementById('customer-reaction').classList.add('hidden');
   const active = document.getElementById('customer-active');
   const next = document.getElementById('customer-next');
-  // Do not let the one-time entrance animation compete with the queue
-  // transition when this element is reused for a later customer.
+
+
   active.classList.remove('slide-in');
   next.classList.remove('slide-in');
   active.classList.add('customer-slide-away');
@@ -2581,10 +2918,10 @@ function updateIngredientStockUI() {
 
 function setCookingSlide(n) {
   cookingSlide = n;
-  // Show/hide slide-2 and slide-3 elements
+
   document.querySelectorAll('.ing-s2').forEach(el => el.style.display = n === 2 ? 'block' : 'none');
   document.querySelectorAll('.ing-s3').forEach(el => el.style.display = n === 3 ? 'block' : 'none');
-  // Slide 1 elements (no class) — hide when not slide 1
+
   const s1els = ['ing-mushrooms','ing-broccoli','ing-tofu','cooking-next1','hit-cooking-next1'];
   s1els.forEach(id => {
     const el = document.getElementById(id);
@@ -2635,7 +2972,7 @@ document.addEventListener("newCustomer", () => {
   _activeCustomerType = _randomType();
   _startToggle(active, _activeCustomerType);
   active.classList.remove("slide-in");
-  void active.offsetWidth; // reflow to restart animation
+  void active.offsetWidth;
   active.classList.add("slide-in");
   active.addEventListener("animationend", () => {
     active.classList.remove("slide-in");
@@ -2644,8 +2981,8 @@ document.addEventListener("newCustomer", () => {
   _startToggle(next, nextCustomerType);
 });
 
-/* ─────────────────────────────────────────────
-   INITIALISE
-───────────────────────────────────────────── */
+
+
+
 loadSettings();
 updateMoneyHud();
