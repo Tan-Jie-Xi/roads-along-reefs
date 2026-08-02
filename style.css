@@ -736,6 +736,173 @@ html, body {
 #hit-ts-arrow { left: 44%; width: 6%;  }
 
 /* ═══════════════════════════════════════════════
+   SERVING SCREEN
+═══════════════════════════════════════════════ */
+#serving-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Tutorial speech bubble anchored to the top */
+#serving-tutorial-wrap.hidden { display: none; }
+
+#serving-tutorial-wrap {
+  position: absolute;
+  top: 2%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  z-index: 10;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+#serving-speech {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+}
+
+#serving-cat {
+  position: absolute;
+  right: -21%;
+  top: -85%;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+}
+
+#serving-tut-text {
+  position: absolute;
+  top: 18%;
+  left: 5%;
+  width: 70%;
+  height: 65%;
+  font-family: 'RoadsAlongReefs', sans-serif;
+  font-size: 160%;
+  color: #3a2200;
+  line-height: 1.45;
+  word-break: break-word;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Customer window — clip bottom of sprites behind counter edge */
+#customer-area {
+  position: absolute;
+  left: 5%;
+  top: 10%;
+  width: 90%;
+  height: 58%;       /* adjust to control how much of the cat shows */
+  overflow: hidden;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.customer-slot {
+  position: absolute;
+  bottom: 0;
+  width: 35%;
+}
+
+.customer-slot img {
+  width: 130%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  /* Adjust the last value (35%) to raise/lower the cut-off point */
+  clip-path: inset(0 0 33% 0);
+}
+
+/* Active customer — starts off-screen right, slides in */
+#customer-active {
+  left: 25%;
+  top: 39%;
+  transform: translateX(0);
+}
+
+#customer-active.slide-in {
+  animation: customerSlideIn 0.6s ease-out forwards;
+}
+
+/* Next customer — peeking from right at 50% opacity */
+#customer-next {
+  left: 73%;
+  top: 39%;
+  opacity: 0.5;
+  clip-path: inset(0 37% 0 0);
+}
+
+@keyframes customerSlideIn {
+  from { transform: translateX(120%); }
+  to   { transform: translateX(0); }
+}
+
+/* Order box — floats above the active customer */
+#order-box-wrap {
+  position: absolute;
+  left: 32%;
+  top: 10%;
+  width: 30%;
+  z-index: 5;
+  text-align: center;
+  pointer-events: none;
+}
+#order-box-wrap.hidden { display: none; }
+#order-box-wrap.fade-in { animation: obFadeIn 0.4s ease forwards; }
+@keyframes obFadeIn { from { opacity:0; } to { opacity:1; } }
+
+#order-box-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Ingredient slot labels sit over the box image */
+#order-box-slots {
+  position: absolute;
+  top: 13%;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 4%;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.ob-slot {
+  flex: 1;
+  text-align: center;
+  font-family: 'RoadsAlongReefs', sans-serif;
+  font-size: 90%;
+  color: #3a2200;
+  word-break: break-word;
+}
+
+#order-box-count {
+  position:absolute;
+  top: 53%;
+  left: 45%;
+  font-family: 'RoadsAlongReefs', sans-serif;
+  font-size: 140%;
+  color: #3a2200;
+  margin-top: 2%;
+}
+
+/* ═══════════════════════════════════════════════
    SCROLLBAR STYLING (panel)
 ═══════════════════════════════════════════════ */
 .panel::-webkit-scrollbar { width: 6px; }
@@ -802,4 +969,3 @@ body.high-contrast .slot-btn:hover:not(:disabled) { background: #fff !important;
 body.high-contrast .slot-btn.danger       { border-color: #f88 !important; color: #f88 !important; }
 body.high-contrast .slot-btn.danger:hover:not(:disabled) { background: #f88 !important; color: #000 !important; }
 body.high-contrast .tab-note              { color: #aaa !important; }
- 

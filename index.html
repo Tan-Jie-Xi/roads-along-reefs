@@ -114,6 +114,32 @@
     </div><!-- /truck-select-screen -->
 
 
+    <!-- ── SERVING SCREEN ───────────────────── -->
+    <div id="serving-screen" class="screen hidden">
+      <img id="serving-bg" src="assets/serving/counter.png" alt="" draggable="false" />
+
+      <!-- Order box (above active customer) -->
+      <div id="order-box-wrap" class="hidden">
+        <img id="order-box-img" src="" alt="" draggable="false" />
+        <div id="order-box-slots"></div>
+        <div id="order-box-count"></div>
+      </div>
+
+      <!-- Customer window area -->
+      <div id="customer-area">
+        <div id="customer-next" class="customer-slot"></div>
+        <div id="customer-active" class="customer-slot"></div>
+      </div>
+
+      <!-- Tutorial speech bubble (top of screen) -->
+      <div id="serving-tutorial-wrap">
+        <img id="serving-speech"  src="assets/tutorials/tutorial_speech_2.png" alt="" draggable="false" />
+        <img id="serving-cat"     src="assets/tutorials/tutorial_cat_icon.png" alt="" draggable="false" />
+        <div id="serving-tut-text"></div>
+      </div>
+    </div><!-- /serving-screen -->
+
+
     <!-- ── DIALOGUE OVERLAY ─────────────────────
          Appears above screens (z 600), below the
          scene-transition fade (z 1000).
