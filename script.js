@@ -521,6 +521,46 @@ function formatDate(iso) {
   });
 }
 
+function getGameSaveSnapshot(dayOverride = dayNumber, overrides = {}) {
+  return {
+    day: dayOverride,
+    savedAt: new Date().toISOString(),
+    money,
+    ingredients: { ...ingredientStock },
+    totalCustomersServed,
+    totalSatisfied,
+    totalAngry,
+    totalEarned,
+    dayEarned: overrides.dayEarned ?? dayEarned,
+    daySpent: overrides.daySpent ?? daySpent,
+    supplierChosen,
+  };
+}
+
+function saveGameToSlot(slotIndex, dayOverride = dayNumber, overrides = {}) {
+  const slots = getSaveSlots();
+  slots[slotIndex] = getGameSaveSnapshot(dayOverride, overrides);
+  writeSaveSlots(slots);
+  return slots[slotIndex];
+}
+
+function loadGameFromSlot(slot) {
+  if (!slot) return;
+  money = Number(slot.money) || 0;
+  totalCustomersServed = Number(slot.totalCustomersServed) || 0;
+  totalSatisfied = Number(slot.totalSatisfied) || 0;
+  totalAngry = Number(slot.totalAngry) || 0;
+  totalEarned = Number(slot.totalEarned) || 0;
+  supplierChosen = slot.supplierChosen !== false;
+  initIngredientStock();
+  Object.assign(ingredientStock, slot.ingredients || {});
+  updateMoneyHud();
+  updateEggSprite();
+  dayNumber = Math.max(1, Number(slot.day) || 1);
+  hideModal("load-modal");
+  startDayIntro(dayNumber);
+}
+
 function renderSaveSlots() {
   const slots = getSaveSlots();
   const container = document.getElementById("save-slots-container");
@@ -549,13 +589,7 @@ function renderSaveSlots() {
     saveBtn.textContent = "💾 Save";
     saveBtn.addEventListener("click", () => {
       playUiSfx("click");
-      const updated = getSaveSlots();
-      updated[i] = {
-        day: (updated[i]?.day || 0) + 1,
-        savedAt: new Date().toISOString(),
-        placeholder: true,
-      };
-      writeSaveSlots(updated);
+      saveGameToSlot(i);
       renderSaveSlots();
     });
 
@@ -566,8 +600,7 @@ function renderSaveSlots() {
     loadBtn.addEventListener("click", () => {
       if (!slot) return;
       playUiSfx("click");
-      hideModal("load-modal");
-      alert(`Loaded Slot ${i + 1}! (game world coming soon)`);
+      loadGameFromSlot(slot);
     });
 
     const delBtn = document.createElement("button");
@@ -589,6 +622,12 @@ function renderSaveSlots() {
     container.appendChild(div);
   }
 }
+
+document.getElementById("day-save-button").addEventListener("click", () => {
+  playUiSfx("click");
+  renderSaveSlots();
+  showModal("load-modal");
+});
 
 document.getElementById("load-close").addEventListener("click", () => {
   playUiSfx("close");
@@ -1038,12 +1077,253 @@ function stopAllMusic() {
 function showScreen(id) {
   // eslint-disable-line no-redeclare
   _setActiveScreen(id);
+  const hud = document.getElementById('game-hud');
+  if (hud) {
+    const hudVisible = ['serving-screen', 'cooking-screen', 'shop-screen', 'purchasing-screen'].includes(id);
+    hud.classList.toggle('visible', hudVisible);
+    hud.classList.toggle('shop-mode', id === 'shop-screen' || id === 'purchasing-screen');
+  }
+  const saveButton = document.getElementById('day-save-button');
+  if (saveButton) {
+    saveButton.classList.toggle(
+      'visible',
+      dayNumber >= 2 && ['serving-screen', 'cooking-screen'].includes(id),
+    );
+  }
   const newTrack = SCREEN_MUSIC[id] || null;
   if (newTrack !== _currentTrack) {
     stopAllMusic();
     if (newTrack) playTrack(newTrack);
   }
 }
+
+/* ─────────────────────────────────────────────
+   SHOP + PURCHASING
+───────────────────────────────────────────── */
+const SHOP_ITEMS = [
+  { key: 'lettuce', stockKey: 'cabbage', source: 'assets/full_ingredients/cabbage.png', price: 1 },
+  { key: 'tomato', stockKey: 'tomatoes', source: 'assets/full_ingredients/tomato.png', price: 1 },
+  { key: 'carrot', stockKey: 'carrots', source: 'assets/full_ingredients/carrots.png', price: 1 },
+  { key: 'rice', stockKey: 'rice', source: 'assets/full_ingredients/rice.png', price: 2 },
+  { key: 'corn', stockKey: 'corn', source: 'assets/full_ingredients/corn.png', price: 2 },
+  { key: 'broccoli', stockKey: 'broccoli', source: 'assets/full_ingredients/broccoli.png', price: 2 },
+  { key: 'noodles', stockKey: 'noodles', source: 'assets/full_ingredients/noodles.png', price: 3 },
+  { key: 'egg', stockKey: 'egg', source: 'assets/full_ingredients/egg.png', price: 3 },
+  { key: 'mushroom', stockKey: 'mushrooms', source: 'assets/full_ingredients/mushroom.png', price: 4 },
+  { key: 'tofu', stockKey: 'tofu', source: 'assets/full_ingredients/tofu.png', price: 4 },
+];
+
+let shopBackground = 'farm';
+let purchasingPage = 1;
+const purchaseQuantities = Object.fromEntries(SHOP_ITEMS.map(item => [item.key, 0]));
+let supplierChosen = localStorage.getItem('rar_supplier_chosen') === 'local-farm';
+let shopReturnScreen = 'serving-screen';
+
+function resetPurchaseCart() {
+  SHOP_ITEMS.forEach(item => {
+    purchaseQuantities[item.key] = 0;
+  });
+}
+
+function purchaseMaxStock(item) {
+  return item.stockKey === 'egg'
+    ? 4
+    : item.stockKey === 'rice' || item.stockKey === 'noodles'
+      ? 12
+      : 9;
+}
+
+function setShopBackground(kind) {
+  if (kind === shopBackground) return;
+  const background = document.getElementById('shop-background');
+  background.classList.remove('shop-fade-in');
+  background.classList.add('shop-fade-out');
+  setTimeout(() => {
+    shopBackground = kind;
+    background.src = kind === 'market'
+      ? 'assets/shop/marketbg.png'
+      : 'assets/shop/farm.png';
+    document.getElementById('shop-info-farm').classList.toggle('hidden', kind !== 'farm');
+    document.getElementById('shop-info-market').classList.toggle('hidden', kind !== 'market');
+    document.getElementById('hit-shop-info-farm').classList.toggle('hidden', kind !== 'farm');
+    document.getElementById('hit-shop-info-market').classList.toggle('hidden', kind !== 'market');
+    background.classList.remove('shop-fade-out');
+    background.classList.add('shop-fade-in');
+  }, 210);
+}
+
+function initShopScreen() {
+  shopBackground = 'farm';
+  const background = document.getElementById('shop-background');
+  background.src = 'assets/shop/farm.png';
+  background.classList.remove('shop-fade-out', 'shop-fade-in');
+  document.getElementById('shop-info-farm').classList.remove('hidden');
+  document.getElementById('shop-info-market').classList.add('hidden');
+  document.getElementById('hit-shop-info-farm').classList.remove('hidden');
+  document.getElementById('hit-shop-info-market').classList.add('hidden');
+
+  const localFarm = document.getElementById('shop-local-farm');
+  const hypermarket = document.getElementById('shop-hypermarket');
+  const localFarmHit = document.getElementById('hit-shop-local-farm');
+  const hypermarketHit = document.getElementById('hit-shop-hypermarket');
+  localFarmHit.onmouseenter = () => localFarm.classList.add('shop-choice-hover');
+  localFarmHit.onmouseleave = () => localFarm.classList.remove('shop-choice-hover');
+  hypermarketHit.onmouseenter = () => hypermarket.classList.add('shop-choice-hover');
+  hypermarketHit.onmouseleave = () => hypermarket.classList.remove('shop-choice-hover');
+
+  document.getElementById('hit-shop-local-farm').onclick = () => {
+    if (shopBackground === 'farm') {
+      showModal('supplier-confirm-modal');
+    } else {
+      setShopBackground('farm');
+    }
+  };
+  document.getElementById('hit-shop-hypermarket').onclick = () => {
+    if (shopBackground === 'market') {
+      showModal('supplier-warning-modal');
+    } else {
+      setShopBackground('market');
+    }
+  };
+  document.getElementById('hit-shop-info-farm').onclick = () => {
+    document.getElementById('shop-info-title').textContent = 'Local farms';
+    document.getElementById('shop-info-message').textContent =
+      'Sourcing from local farms reduces the carbon footprint by cutting down on transport distances and minimizes plastic packaging waste common in hypermarkets.';
+    showModal('shop-info-modal');
+  };
+  document.getElementById('hit-shop-info-market').onclick = () => {
+    document.getElementById('shop-info-title').textContent = 'Hypermarkets';
+    document.getElementById('shop-info-message').textContent =
+      'Sourcing from hypermarkets relies on long-distance logistics that generate high transport emissions and requires excessive chemical preservatives to keep food fresh during transit.';
+    showModal('shop-info-modal');
+  };
+}
+
+function openShop() {
+  const activeScreen = document.querySelector('.screen.active');
+  if (activeScreen && ['serving-screen', 'cooking-screen'].includes(activeScreen.id)) {
+    shopReturnScreen = activeScreen.id;
+  }
+  const target = supplierChosen ? 'purchasing-screen' : 'shop-screen';
+  fadeToScene(target, target === 'shop-screen' ? initShopScreen : initPurchasingScreen);
+}
+
+function renderPurchasePage(page) {
+  const slots = document.getElementById(`purchase-slots-${page}`);
+  const items = page === 1 ? SHOP_ITEMS.slice(0, 8) : SHOP_ITEMS.slice(8);
+  slots.innerHTML = '';
+  items.forEach((item) => {
+    const slot = document.createElement('div');
+    slot.className = 'purchase-slot';
+    slot.setAttribute('role', 'button');
+    slot.setAttribute('aria-label', `Buy ${item.key} for $${item.price}`);
+    slot.innerHTML = `
+      <img class="purchase-slot-image" src="${item.source}" alt="${item.key}" draggable="false" />
+      <span class="purchase-quantity">${purchaseQuantities[item.key]}</span>
+      <span class="purchase-price">$${item.price}</span>
+    `;
+    slot.onclick = () => purchaseItem(item);
+    slots.appendChild(slot);
+  });
+}
+
+function initPurchasingScreen() {
+  initIngredientStock();
+  resetPurchaseCart();
+  purchasingPage = 1;
+  document.getElementById('purchase-page-track').classList.remove('purchase-page-two');
+  document.getElementById('last_page').classList.add('hidden');
+  document.getElementById('next_page').classList.remove('hidden');
+  document.getElementById('purchase-exit').classList.remove('hidden');
+  document.getElementById('hit-purchase-exit').classList.remove('hidden');
+  renderPurchasePage(1);
+  renderPurchasePage(2);
+}
+
+function purchaseItem(item) {
+  // Cart quantities are kept separate from the kitchen inventory until checkout.
+  initIngredientStock();
+  const currentStock = ingredientStock[item.stockKey] || 0;
+  if (currentStock + purchaseQuantities[item.key] >= purchaseMaxStock(item)) return;
+  purchaseQuantities[item.key]++;
+  renderPurchasePage(purchasingPage);
+}
+
+document.getElementById('shop-hud').addEventListener('click', openShop);
+document.getElementById('ingame-settings-hud').addEventListener('click', () => showModal('settings-modal'));
+document.getElementById('shop-info-ok').addEventListener('click', () => {
+  playUiSfx('close');
+  hideModal('shop-info-modal');
+});
+document.getElementById('supplier-no').addEventListener('click', () => {
+  playUiSfx('close');
+  hideModal('supplier-confirm-modal');
+});
+document.getElementById('supplier-yes').addEventListener('click', () => {
+  playUiSfx('click');
+  supplierChosen = true;
+  localStorage.setItem('rar_supplier_chosen', 'local-farm');
+  hideModal('supplier-confirm-modal');
+  fadeToScene('purchasing-screen', initPurchasingScreen);
+});
+document.getElementById('supplier-warning-ok').addEventListener('click', () => {
+  playUiSfx('close');
+  hideModal('supplier-warning-modal');
+});
+
+function returnFromShop() {
+  const target = ['serving-screen', 'cooking-screen'].includes(shopReturnScreen)
+    ? shopReturnScreen
+    : 'serving-screen';
+  fadeToScene(target);
+}
+
+function checkoutCart() {
+  initIngredientStock();
+  let total = 0;
+  SHOP_ITEMS.forEach(item => {
+    const quantity = purchaseQuantities[item.key];
+    if (!quantity) return;
+    const available = purchaseMaxStock(item) - (ingredientStock[item.stockKey] || 0);
+    const committed = Math.min(quantity, Math.max(0, available));
+    ingredientStock[item.stockKey] += committed;
+    total += committed * item.price;
+  });
+  money -= total;
+  daySpent += total;
+  updateMoneyHud();
+  resetPurchaseCart();
+  updateIngredientStockUI();
+  returnFromShop();
+}
+
+function clearPurchaseCart() {
+  resetPurchaseCart();
+  renderPurchasePage(1);
+  renderPurchasePage(2);
+}
+
+document.getElementById('hit-purchase-checkout').addEventListener('click', checkoutCart);
+document.getElementById('hit-purchase-clearcart').addEventListener('click', clearPurchaseCart);
+document.getElementById('hit-purchase-exit').addEventListener('click', returnFromShop);
+document.getElementById('next_page').addEventListener('click', () => {
+  if (purchasingPage === 2) return;
+  purchasingPage = 2;
+  document.getElementById('purchase-page-track').classList.add('purchase-page-two');
+  document.getElementById('next_page').classList.add('hidden');
+  document.getElementById('last_page').classList.remove('hidden');
+  document.getElementById('purchase-exit').classList.add('hidden');
+  document.getElementById('hit-purchase-exit').classList.add('hidden');
+});
+document.getElementById('last_page').addEventListener('click', () => {
+  if (purchasingPage === 1) return;
+  purchasingPage = 1;
+  document.getElementById('purchase-page-track').classList.remove('purchase-page-two');
+  document.getElementById('last_page').classList.add('hidden');
+  document.getElementById('next_page').classList.remove('hidden');
+  document.getElementById('purchase-exit').classList.remove('hidden');
+  document.getElementById('hit-purchase-exit').classList.remove('hidden');
+});
 
 // Start menu music immediately on load
 playTrack(menuMusic);
@@ -1086,6 +1366,7 @@ function playSfx(id) {
 
   let _state = "neutral";
   let _grabTimer = null;
+  let _holding = false;
   let _lastX = 0;
   let _lastY = 0;
 
@@ -1166,7 +1447,7 @@ function playSfx(id) {
     cursorEl.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
     cursorEl.style.display = "block";
 
-    if (_grabTimer) return;
+    if (_holding || _grabTimer) return;
     setState(resolveHoverState(e.clientX, e.clientY));
   });
 
@@ -1177,12 +1458,16 @@ function playSfx(id) {
   // Flash grab on any click inside game or modal
   document.addEventListener("mousedown", (e) => {
     if (!isOverGame(e.clientX, e.clientY) && !isModalOpen()) return;
+    _holding = true;
     if (_grabTimer) clearTimeout(_grabTimer);
+    _grabTimer = null;
     setState("grab");
-    _grabTimer = setTimeout(() => {
-      _grabTimer = null;
-      setState(resolveHoverState(_lastX, _lastY));
-    }, 140);
+  });
+
+  document.addEventListener("mouseup", () => {
+    if (!_holding) return;
+    _holding = false;
+    setState(resolveHoverState(_lastX, _lastY));
   });
 })();
 
@@ -1474,56 +1759,841 @@ function _stAdvance() {
 /* ─────────────────────────────────────────────
    CUSTOMER SPAWNING
 ───────────────────────────────────────────── */
-const CUSTOMER_TYPES = ["calico", "siamese", "tabby", "tuxedo"];
+const CUSTOMER_TYPES = [
+  "calico",
+  "siamese",
+  "tabby",
+  "tuxedo",
+  "brownbunny",
+  "greybunny",
+  "spotbunny",
+  "whitebunny",
+  "shrimp",
+];
 const _spriteTimers = [];
 let _activeCustomerType = 'calico';
 
 // Diet per customer type (all current cats are omnivore)
 const CUSTOMER_DIET = {
   calico: 'omnivore', siamese: 'omnivore', tabby: 'omnivore', tuxedo: 'omnivore',
+  brownbunny: 'herbivore',
+  greybunny: 'herbivore',
+  spotbunny: 'herbivore',
+  whitebunny: 'herbivore',
+  shrimp: 'omnivore',
 };
 
-// Dishes: ingredients are listed first, base (rice/noodles) added as final slot
-const DISHES = {
-  omnivore: [
-    { ingredients: ['egg', 'corn'],              base: 'rice' },
-    { ingredients: ['egg', 'broccoli', 'tofu'],  base: 'rice' },
-    { ingredients: ['cabbage', 'egg', 'tomato'], base: 'noodles' },
-    { ingredients: ['mushroom', 'corn', 'tofu'], base: 'noodles' },
-  ],
-  herbivore: [
-    { ingredients: ['cabbage', 'carrot', 'tomato'], base: 'rice' },
-    { ingredients: ['corn', 'broccoli', 'carrot'],  base: 'rice' },
-    { ingredients: ['mushroom', 'broccoli'],         base: 'rice' },
-    { ingredients: ['carrot', 'broccoli'],           base: 'noodles' },
-  ],
+const DISH_RECIPES = [
+  { key: 'broccoli_tofu_egg_rice', category: 'omnivore', price: 18, ingredients: ['broccoli', 'tofu', 'egg'], base: 'rice' },
+  { key: 'egg_corn_rice', category: 'omnivore', price: 13, ingredients: ['egg', 'corn'], base: 'rice' },
+  { key: 'mushroom_broccoli_rice', category: 'herbivore', price: 14, ingredients: ['mushroom', 'broccoli'], base: 'rice' },
+  { key: 'cabbage_carrot_tomato_rice', category: 'herbivore', price: 10, ingredients: ['cabbage', 'carrot', 'tomato'], base: 'rice' },
+  { key: 'broccoli_carrot_corn_rice', category: 'herbivore', price: 13, ingredients: ['broccoli', 'carrot', 'corn'], base: 'rice' },
+  { key: 'broccoli_carrot_noodles', category: 'herbivore', price: 11, ingredients: ['broccoli', 'carrot'], base: 'noodles' },
+  { key: 'mushroom_corn_noodles', category: 'herbivore', price: 13, ingredients: ['mushroom', 'corn'], base: 'noodles' },
+  { key: 'cabbage_egg_tomato_noodles', category: 'herbivore', price: 14, ingredients: ['cabbage', 'egg', 'tomato'], base: 'noodles' },
+];
+
+const ORDER_BOX_INGREDIENT_SOURCES = {
+  broccoli: 'assets/full_ingredients/broccoli.png',
+  cabbage: 'assets/full_ingredients/cabbage.png',
+  carrot: 'assets/full_ingredients/carrots.png',
+  corn: 'assets/full_ingredients/corn.png',
+  egg: 'assets/full_ingredients/egg.png',
+  mushroom: 'assets/full_ingredients/mushroom.png',
+  noodles: 'assets/full_ingredients/noodles.png',
+  rice: 'assets/full_ingredients/rice.png',
+  tofu: 'assets/full_ingredients/tofu.png',
+  tomato: 'assets/full_ingredients/tomato.png',
 };
 
-function _randomDish(diet) {
-  const list = DISHES[diet];
-  return list[Math.floor(Math.random() * list.length)];
+function _randomDish(customerType) {
+  const category = CUSTOMER_DIET[customerType] || 'omnivore';
+  const availableDishes = DISH_RECIPES.filter(dish =>
+    dish.category === category &&
+    (category !== 'herbivore' || !dish.ingredients.includes('egg'))
+  );
+  return availableDishes[Math.floor(Math.random() * availableDishes.length)];
 }
 
-function showOrderBox(customerType) {
-  const diet  = CUSTOMER_DIET[customerType] || 'omnivore';
-  const dish  = _randomDish(diet);
+let money = 0;
+let dayNumber = 1;
+let dayEarned = 0;
+let daySpent = 0;
+let totalEarned = 0;
+let totalCustomersServed = 0;
+let totalSatisfied = 0;
+let totalAngry = 0;
+
+function customersPerDay() {
+  return dayNumber === 1 ? 5 : 6;
+}
+
+function updateMoneyHud() {
+  const amount = document.getElementById('money-amount');
+  if (!amount) return;
+  amount.textContent = money < 0 ? `-$${Math.abs(money)}` : `$${money}`;
+  amount.classList.toggle('negative', money < 0);
+}
+
+function dayStarCount() {
+  const served = Math.max(1, customersPerDay());
+  const angry = Math.max(0, wrongDishesServed);
+  const satisfiedThisDay = Math.max(0, served - angry);
+  const ratio = satisfiedThisDay / served;
+  if (ratio >= 0.8) return 3;
+  if (ratio >= 0.5) return 2;
+  return 1;
+}
+
+function renderDaySummary() {
+  const earned = document.getElementById('day-summary-earned');
+  const spent = document.getElementById('day-summary-spent');
+  const total = document.getElementById('day-summary-total');
+  earned.textContent = `$${dayEarned}`;
+  spent.textContent = `$${daySpent}`;
+  total.textContent = `$${totalEarned}`;
+
+  const left = document.getElementById('day-summary-left-star');
+  const middle = document.getElementById('day-summary-middle-star');
+  const right = document.getElementById('day-summary-right-star');
+  [left, middle, right].forEach(star => {
+    star.classList.remove('visible');
+    star.classList.add('hidden');
+  });
+
+  const stars = dayStarCount();
+  left.classList.remove('hidden');
+  right.classList.toggle('hidden', stars < 2);
+  requestAnimationFrame(() => {
+    left.classList.add('visible');
+    if (stars >= 2) right.classList.add('visible');
+  });
+  if (stars === 3) {
+    setTimeout(() => {
+      middle.classList.remove('hidden');
+      middle.classList.add('visible');
+    }, 1000);
+  }
+
+  const nextDay = dayNumber + 1;
+  if (document.getElementById('autosave-toggle')?.checked) {
+    saveGameToSlot(0, nextDay, {
+      dayEarned: 0,
+      daySpent: 0,
+    });
+  }
+}
+
+function resetDayState() {
+  customersServed = 0;
+  wrongDishesServed = 0;
+  dayEarned = 0;
+  daySpent = 0;
+  dayEnded = false;
+  servingInProgress = false;
+  successfulDishReady = false;
+  preparedDishKey = null;
+  potIngredients = [];
+}
+
+function startDayIntro(day) {
+  dayNumber = Math.max(1, Number(day) || 1);
+  resetDayState();
+  const overlay = document.getElementById('day-intro-overlay');
+  const label = document.getElementById('day-intro-label');
+  label.textContent = `DAY ${dayNumber}`;
+  overlay.classList.remove('hidden', 'label-visible', 'label-fading');
+  overlay.classList.add('visible');
+
+  setTimeout(() => {
+    overlay.classList.add('label-visible');
+  }, 700);
+
+  setTimeout(() => {
+    overlay.classList.remove('label-visible');
+    overlay.classList.add('label-fading');
+    setTimeout(() => {
+      overlay.classList.remove('visible', 'label-fading');
+      overlay.classList.add('hidden');
+    }, 700);
+  }, 2400);
+
+  showScreen('serving-screen');
+  const tutWrap = document.getElementById('serving-tutorial-wrap');
+  tutWrap.classList.add('hidden');
+  tutWrap.style.display = 'none';
+  document.getElementById('customer-reaction').classList.add('hidden');
+  document.getElementById('to-kitchen-arrow').classList.add('hidden');
+  document.dispatchEvent(new CustomEvent('newCustomer'));
+  showOrderBox(_activeCustomerType, false);
+}
+
+document.getElementById('day-summary-screen').addEventListener('click', () => {
+  const nextDay = dayNumber + 1;
+  dayNumber = nextDay;
+  startDayIntro(nextDay);
+});
+
+function showOrderBox(customerType, withTutorial = true) {
+  const dish  = _randomDish(customerType);
+  currentOrderDish = dish;
   const slots = [...dish.ingredients, dish.base]; // e.g. ['egg','corn','rice'] = 3 boxes
 
   const wrap    = document.getElementById('order-box-wrap');
   const boxImg  = document.getElementById('order-box-img');
   const slotsEl = document.getElementById('order-box-slots');
-  const countEl = document.getElementById('order-box-count');
 
   boxImg.src = slots.length <= 3
     ? 'assets/serving/three_order_box.png'
     : 'assets/serving/four_order_box.png';
 
-  slotsEl.innerHTML = slots.map(s => `<div class="ob-slot">${s}</div>`).join('');
-  countEl.textContent = `0/${slots.length}`;
+  slotsEl.innerHTML = slots.map(slot => {
+    const source = ORDER_BOX_INGREDIENT_SOURCES[slot];
+    return `<div class="ob-slot"><img src="${source}" alt="${slot}" draggable="false" /></div>`;
+  }).join('');
 
   wrap.classList.remove('hidden', 'fade-in');
   void wrap.offsetWidth;
   wrap.classList.add('fade-in');
+  wrap.style.pointerEvents = 'auto';
+  wrap.style.cursor = 'pointer';
+  wrap.removeEventListener('click', startOrderBoxTutorial);
+  wrap.onclick = null;
+  if (withTutorial) {
+    wrap.addEventListener('click', startOrderBoxTutorial, { once: true });
+  } else {
+    wrap.onclick = showKitchenArrow;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   ORDER BOX TUTORIAL + KITCHEN ARROW
+───────────────────────────────────────────── */
+const OB_TUT_LINES = [
+  "In these few boxes, the ingredients your customer wants in their food is shown. ",
+  "Let's whip them up something nice, shall we?",
+];
+const KITCHEN_TUT_LINES = [
+  "Click that triangular button down there, and let's get to cooking!",
+];
+const COOKING_TUT_LINES = [
+  "Considering how you're still new to this, I've thrown in a little something for free.",
+  "Your truck is filled with ingredients for your first day on the job, you're welcome.",
+  "In case you're not familiar with how this works...",
+  "Start by memorizing your customer's order ingredients.",
+  "Then, you can go ahead and drag the ingredients into the pot over there.",
+  "When you've got everything, press the red button on the stove to start cooking.",
+  "Of course, if you put something in there by mistake, you can always click the white button next to it to clear your pot.",
+  "While cooking, be sure to click the meter when it's green!.",
+  "Unless... well... unless you're just really bad at cooking in general.",
+  "Anyways, once your ingredients run out, you can always click the shop icon to buy more.",
+  "You'll be using your own money though, of course. Be sure to make the right choice on who to buy from!",
+  "Oh, would you look at the time... I'm running late for a meeting.",
+  "All the best on your food truck business! Farewell, my friend.",
+];
+
+let _obTutLineIdx = 0;
+let _obTutCharIdx = 0;
+let _obTutTyping = false;
+let _obTutTimer = null;
+let _obTutLines = OB_TUT_LINES;
+let _obTutOnDone = null;
+let cookingTutorialShown = false;
+let cookingTutorialLineIdx = 0;
+let cookingTutorialCharIdx = 0;
+let cookingTutorialTyping = false;
+let cookingTutorialTimer = null;
+
+function _showServingTutWrap() {
+  const wrap = document.getElementById('serving-tutorial-wrap');
+  wrap.classList.remove('hidden');
+  wrap.style.display = '';
+}
+
+function _hideServingTutWrap() {
+  const wrap = document.getElementById('serving-tutorial-wrap');
+  wrap.classList.add('hidden');
+  wrap.style.display = 'none';
+  wrap.removeEventListener('click', _obTutAdvance);
+}
+
+function _obTutType(text) {
+  const el = document.getElementById('serving-tut-text');
+  el.textContent = '';
+  _obTutCharIdx = 0;
+  _obTutTyping = true;
+  (function tick() {
+    if (_obTutCharIdx < text.length) {
+      el.textContent += text[_obTutCharIdx++];
+      _obTutTimer = setTimeout(tick, TYPEWRITER_MS);
+    } else {
+      _obTutTyping = false;
+      _obTutTimer = null;
+    }
+  })();
+}
+
+function _obTutAdvance() {
+  if (_obTutTyping) {
+    clearTimeout(_obTutTimer);
+    _obTutTimer = null;
+    _obTutTyping = false;
+    document.getElementById('serving-tut-text').textContent = _obTutLines[_obTutLineIdx];
+    return;
+  }
+  _obTutLineIdx++;
+  if (_obTutLineIdx < _obTutLines.length) {
+    _obTutType(_obTutLines[_obTutLineIdx]);
+  } else {
+    _hideServingTutWrap();
+    if (_obTutOnDone) { const cb = _obTutOnDone; _obTutOnDone = null; cb(); }
+  }
+}
+
+function _startTutDialogue(lines, onDone) {
+  _obTutLines = lines;
+  _obTutLineIdx = 0;
+  _obTutOnDone = onDone;
+  _showServingTutWrap();
+  const wrap = document.getElementById('serving-tutorial-wrap');
+  wrap.addEventListener('click', _obTutAdvance);
+  _obTutType(lines[0]);
+}
+
+function startOrderBoxTutorial() {
+  _startTutDialogue(OB_TUT_LINES, showKitchenArrow);
+}
+
+function showKitchenArrow() {
+  const arrow = document.getElementById('to-kitchen-arrow');
+  arrow.classList.remove('hidden');
+  arrow.classList.add('bob-anim');
+  arrow.addEventListener('click', goToKitchen, { once: true });
+
+  // Delay so the dismissal click doesn't immediately fire the new listener
+  setTimeout(() => _startTutDialogue(KITCHEN_TUT_LINES, null), 50);
+}
+
+function goToKitchen() {
+  const servingScreen = document.getElementById('serving-screen');
+  servingScreen.classList.add('slide-up-out');
+  setTimeout(() => {
+    servingScreen.classList.remove('slide-up-out');
+    showScreen('cooking-screen');
+    initCookingScreen();
+    if (!cookingTutorialShown) startCookingTutorial();
+  }, 620);
+}
+
+function startCookingTutorial() {
+  cookingTutorialShown = true;
+  cookingTutorialLineIdx = 0;
+  cookingTutorialTyping = false;
+  const overlay = document.getElementById('cooking-tutorial-overlay');
+  const speech = document.getElementById('cooking-tutorial-speech');
+  overlay.classList.remove('hidden');
+  speech.addEventListener('click', advanceCookingTutorial);
+  typeCookingTutorialLine(COOKING_TUT_LINES[0]);
+}
+
+function typeCookingTutorialLine(text) {
+  const textEl = document.getElementById('cooking-tutorial-text');
+  textEl.textContent = '';
+  cookingTutorialCharIdx = 0;
+  cookingTutorialTyping = true;
+  (function tick() {
+    if (cookingTutorialCharIdx < text.length) {
+      textEl.textContent += text[cookingTutorialCharIdx++];
+      cookingTutorialTimer = setTimeout(tick, TYPEWRITER_MS);
+    } else {
+      cookingTutorialTyping = false;
+      cookingTutorialTimer = null;
+    }
+  })();
+}
+
+function advanceCookingTutorial() {
+  if (cookingTutorialTyping) {
+    clearTimeout(cookingTutorialTimer);
+    cookingTutorialTimer = null;
+    cookingTutorialTyping = false;
+    document.getElementById('cooking-tutorial-text').textContent =
+      COOKING_TUT_LINES[cookingTutorialLineIdx];
+    return;
+  }
+
+  cookingTutorialLineIdx++;
+  if (cookingTutorialLineIdx < COOKING_TUT_LINES.length) {
+    typeCookingTutorialLine(COOKING_TUT_LINES[cookingTutorialLineIdx]);
+    return;
+  }
+
+  document.getElementById('cooking-tutorial-speech')
+    .removeEventListener('click', advanceCookingTutorial);
+  document.getElementById('cooking-tutorial-overlay').classList.add('hidden');
+}
+
+/* ─────────────────────────────────────────────
+   COOKING SCREEN
+───────────────────────────────────────────── */
+function initCookingScreen() {
+  initIngredientStock();
+  setCookingSlide(1);
+
+  document.getElementById('hit-cooking-next1').onclick = () => setCookingSlide(2);
+  document.getElementById('hit-cooking-next2').onclick = () => setCookingSlide(3);
+  document.getElementById('hit-cooking-last1').onclick = () => setCookingSlide(1);
+  document.getElementById('hit-cooking-last2').onclick = () => setCookingSlide(2);
+  const goToCounter = () => {
+    fadeToScene('serving-screen', () => {
+      const arrow = document.getElementById('to-kitchen-arrow');
+      arrow.classList.remove('hidden');
+      arrow.classList.add('bob-anim');
+      arrow.addEventListener('click', goToKitchen, { once: true });
+      if (successfulDishReady) {
+        const orderBox = document.getElementById('order-box-wrap');
+        orderBox.style.pointerEvents = 'auto';
+        orderBox.style.cursor = 'pointer';
+        orderBox.onclick = serveSuccessfulDish;
+      } else {
+        const orderBox = document.getElementById('order-box-wrap');
+        orderBox.style.pointerEvents = 'auto';
+        orderBox.style.cursor = 'pointer';
+        orderBox.onclick = showKitchenArrow;
+      }
+    });
+  };
+  document.getElementById('hit-cooking-to-counter').onclick = goToCounter;
+  document.getElementById('cooking-to-counter').onclick = goToCounter;
+
+  ['hit-ing-slot1', 'hit-ing-slot2', 'hit-ing-slot3'].forEach((id, index) => {
+    document.getElementById(id).onmousedown = (e) => startIngredientDrag(currentCookingIngredients()[index], e);
+  });
+  document.getElementById('hit-rice').onmousedown = (e) => startIngredientDrag('rice', e);
+  document.getElementById('hit-noodles').onmousedown = (e) => {
+    if (!noodlesOpened) {
+      noodlesOpened = true;
+      document.getElementById('ing-noodles').src = 'assets/cooking/noodles_opened.png';
+      return;
+    }
+    startIngredientDrag('noodles', e);
+  };
+  document.getElementById('hit-egg').onmousedown = (e) => startIngredientDrag('egg', e);
+  resetCookingPot();
+  document.getElementById('hit-cooking-cook').onclick = cookPot;
+  document.getElementById('hit-cooking-clear').onclick = clearPot;
+  document.getElementById('hit-cooking-meter').onclick = finishCooking;
+  document.getElementById('cooking-result-ok').onclick = closeCookingResult;
+}
+
+let cookingSlide = 1;
+const ingredientStock = {};
+let noodlesOpened = false;
+let potStartStock = null;
+let potStartSprites = null;
+let cookingFailures = 0;
+let successfulDishReady = false;
+let cookingMeterFrame = null;
+let cookingMeterActive = false;
+let cookingMeterStartedAt = 0;
+let cookingMeterPosition = 0;
+let cookingResultKind = null;
+let currentOrderDish = null;
+let preparedDishKey = null;
+let potIngredients = [];
+let wrongDishesServed = 0;
+let customersServed = 0;
+let customersSpawned = 0;
+let nextCustomerType = null;
+let servingInProgress = false;
+let dayEnded = false;
+const COOKING_INGREDIENTS = [
+  ['mushrooms', 'broccoli', 'tofu'],
+  ['tomatoes', 'cabbage', 'corn'],
+  ['carrots'],
+];
+const FULL_INGREDIENT_SOURCES = {
+  mushrooms: 'assets/full_ingredients/mushroom.png',
+  tomatoes: 'assets/full_ingredients/tomato.png',
+  carrots: 'assets/full_ingredients/carrots.png',
+  egg: 'assets/full_ingredients/egg.png',
+  noodles: 'assets/full_ingredients/noodles.png',
+};
+
+function canonicalIngredient(name) {
+  return ({ mushrooms: 'mushroom', tomatoes: 'tomato', carrots: 'carrot' }[name] || name);
+}
+
+function initIngredientStock() {
+  [...COOKING_INGREDIENTS.flat(), 'rice', 'noodles', 'egg'].forEach(name => {
+    if (ingredientStock[name] === undefined) {
+      ingredientStock[name] = name === 'egg' ? 4 : name === 'rice' || name === 'noodles' ? 12 : 9;
+    }
+  });
+  updateEggSprite();
+  updateIngredientStockUI();
+}
+
+function currentCookingIngredients() {
+  return COOKING_INGREDIENTS[cookingSlide - 1];
+}
+
+function useIngredient(name) {
+  if (!name || !ingredientStock[name]) return;
+  ingredientStock[name]--;
+  updateIngredientStockUI();
+
+  if (name === 'noodles' && ingredientStock[name] === 11) {
+    document.getElementById('ing-noodles').src = 'assets/cooking/noodles_opened.png';
+  }
+  if (name === 'rice' && ingredientStock[name] === 0) {
+    document.getElementById('ing-rice').src = 'assets/cooking/rice_empty.png';
+  }
+  if (name === 'noodles' && ingredientStock[name] === 0) {
+    document.getElementById('ing-noodles').src = 'assets/cooking/noodles_trash.png';
+  }
+  if (name === 'egg') {
+    updateEggSprite();
+  }
+  if (ingredientStock[name] === 0 && !['rice', 'noodles', 'egg'].includes(name)) {
+    document.getElementById(`ing-${name}`).style.display = 'none';
+  }
+}
+
+function updateEggSprite() {
+  const eggSprites = {
+    4: 'assets/cooking/egg_full.png',
+    3: 'assets/cooking/egg_3.png',
+    2: 'assets/cooking/egg_2.png',
+    1: 'assets/cooking/egg_1.png',
+    0: 'assets/cooking/eggs_empty.png',
+  };
+  const egg = document.getElementById('ing-egg');
+  if (egg) egg.src = eggSprites[ingredientStock.egg] || eggSprites[0];
+}
+
+let activeIngredientDrag = null;
+
+function startIngredientDrag(name, event) {
+  if (!name || !ingredientStock[name]) return;
+  if (name === 'noodles' && !noodlesOpened) return;
+  event.preventDefault();
+
+  const source = document.getElementById(`ing-${name}`);
+  const hit = document.getElementById(
+    name === 'rice' ? 'hit-rice'
+      : name === 'noodles' ? 'hit-noodles'
+        : name === 'egg' ? 'hit-egg'
+          : `hit-ing-slot${currentCookingIngredients().indexOf(name) + 1}`,
+  );
+  const copy = document.createElement('img');
+  copy.src = name === 'rice'
+    ? source.src
+    : (FULL_INGREDIENT_SOURCES[name] || `assets/full_ingredients/${canonicalIngredient(name)}.png`);
+  // Rice keeps its full-scene cooking sprite. Egg and noodles use their
+  // standalone full_ingredients sprites like the regular ingredients.
+  const isFullSceneIngredient = ['rice'].includes(name);
+  copy.className = `dragged-ingredient dragged-${name}${isFullSceneIngredient ? '' : ' dragged-full-ingredient'}`;
+  copy.draggable = false;
+  document.getElementById('pot-contents').appendChild(copy);
+
+  activeIngredientDrag = {
+    name,
+    copy,
+    sourceRect: hit.getBoundingClientRect(),
+    startX: event.clientX,
+    startY: event.clientY,
+    grabOffsetX: event.clientX - hit.getBoundingClientRect().left,
+    grabOffsetY: event.clientY - hit.getBoundingClientRect().top,
+    isFullIngredient: !isFullSceneIngredient,
+  };
+  moveIngredientDrag(event);
+  document.addEventListener('mousemove', moveIngredientDrag);
+  document.addEventListener('mouseup', finishIngredientDrag, { once: true });
+}
+
+function moveIngredientDrag(event) {
+  if (!activeIngredientDrag) return;
+  const gameRect = document.getElementById('game-container').getBoundingClientRect();
+  // The game layer is already laid out in rendered CSS pixels. Keep the
+  // pointer delta in that same coordinate system.
+  const dx = event.clientX - activeIngredientDrag.startX;
+  const dy = event.clientY - activeIngredientDrag.startY;
+
+  if (activeIngredientDrag.isFullIngredient) {
+    // Standalone full_ingredients sprites should start at the source hit area
+    // and move with it, instead of being drawn from the pot layer's origin.
+    // Preserve the point where the player grabbed the ingredient.
+    activeIngredientDrag.copy.style.left =
+      `${activeIngredientDrag.sourceRect.left - gameRect.left + dx - activeIngredientDrag.grabOffsetX}px`;
+    activeIngredientDrag.copy.style.top =
+      `${activeIngredientDrag.sourceRect.top - gameRect.top + dy - activeIngredientDrag.grabOffsetY}px`;
+    activeIngredientDrag.copy.style.transform = 'none';
+  } else {
+    // Full-scene rice and egg sprites retain their existing origin/clip
+    // behavior, so the copied image moves as one complete cooking layer.
+    activeIngredientDrag.copy.style.left = '0';
+    activeIngredientDrag.copy.style.top = '0';
+    activeIngredientDrag.copy.style.transform = `translate(${dx}px, ${dy}px)`;
+  }
+}
+
+function finishIngredientDrag(event) {
+  if (!activeIngredientDrag) return;
+  document.removeEventListener('mousemove', moveIngredientDrag);
+  const pot = document.getElementById('hit-cooking-pot').getBoundingClientRect();
+  const dx = event.clientX - activeIngredientDrag.startX;
+  const dy = event.clientY - activeIngredientDrag.startY;
+  const source = activeIngredientDrag.sourceRect;
+  const insidePot =
+    source.left + dx >= pot.left &&
+    source.top + dy >= pot.top &&
+    source.right + dx <= pot.right &&
+    source.bottom + dy <= pot.bottom;
+
+  if (insidePot) {
+    if (!potStartStock) {
+      potStartStock = { ...ingredientStock };
+      potStartSprites = {
+        rice: document.getElementById('ing-rice').src,
+        noodles: document.getElementById('ing-noodles').src,
+        egg: document.getElementById('ing-egg').src,
+      };
+    }
+    useIngredient(activeIngredientDrag.name);
+    potIngredients.push(activeIngredientDrag.name);
+    activeIngredientDrag.copy.style.zIndex = '32';
+  } else {
+    activeIngredientDrag.copy.remove();
+  }
+  activeIngredientDrag = null;
+}
+
+function resetCookingPot() {
+  cookingMeterActive = false;
+  if (cookingMeterFrame) cancelAnimationFrame(cookingMeterFrame);
+  document.getElementById('cooking-bar-wrap').classList.remove('active');
+  document.getElementById('cooking-pot').src = 'assets/cooking/pot_open.png';
+  document.getElementById('pot-contents').innerHTML = '';
+  document.getElementById('pot-contents').style.display = '';
+  potStartStock = null;
+  potStartSprites = null;
+  potIngredients = [];
+}
+
+function cookPot() {
+  if (cookingMeterActive) return;
+  document.getElementById('pot-contents').style.display = 'none';
+  document.getElementById('cooking-pot').src = 'assets/cooking/pot_close.png';
+  document.getElementById('cooking-bar-wrap').classList.add('active');
+  cookingMeterActive = true;
+  cookingMeterStartedAt = performance.now();
+  animateCookingMeter(cookingMeterStartedAt);
+}
+
+function animateCookingMeter(now) {
+  if (!cookingMeterActive) return;
+  const cycle = ((now - cookingMeterStartedAt) / 900) % 2;
+  cookingMeterPosition = cycle <= 1 ? cycle : 2 - cycle;
+  const meter = document.getElementById('cooking-bar-meter');
+  meter.style.left = `${20 + cookingMeterPosition * 60}%`;
+  cookingMeterFrame = requestAnimationFrame(animateCookingMeter);
+}
+
+function finishCooking() {
+  if (!cookingMeterActive) return;
+  cookingMeterActive = false;
+  cancelAnimationFrame(cookingMeterFrame);
+  document.getElementById('cooking-bar-wrap').classList.remove('active');
+
+  const result = cookingMeterPosition < 0.18 || cookingMeterPosition > 0.82
+    ? 'red'
+    : cookingMeterPosition < 0.38 || cookingMeterPosition > 0.62
+      ? 'yellow'
+      : 'green';
+
+  if (result === 'red') {
+    cookingFailures++;
+    cookingResultKind = 'red';
+    restorePotIngredients();
+    successfulDishReady = false;
+    showCookingResult('Cooking failed :(', 'Ingredients burnt. Try again?');
+  } else if (result === 'yellow') {
+    cookingResultKind = 'yellow';
+    restorePotIngredients();
+    successfulDishReady = false;
+    showCookingResult('Cooking questionable :/', 'Ingredients still usable. Try again?');
+  } else {
+    cookingResultKind = 'green';
+    preparedDishKey = findDishKey(potIngredients);
+    successfulDishReady = true;
+    showCookingResult('Cooking success! :D', 'Serve this dish to your customer.');
+  }
+}
+
+function showCookingResult(title, message) {
+  document.getElementById('cooking-result-title').textContent = title;
+  document.getElementById('cooking-result-message').textContent = message;
+  showModal('cooking-result-modal');
+}
+
+function closeCookingResult() {
+  hideModal('cooking-result-modal');
+  if (cookingResultKind !== 'green') resetCookingPot();
+  cookingResultKind = null;
+}
+
+function restorePotIngredients() {
+  if (!potStartStock) return;
+  Object.assign(ingredientStock, potStartStock);
+  if (potStartSprites) {
+    document.getElementById('ing-rice').src = potStartSprites.rice;
+    document.getElementById('ing-noodles').src = potStartSprites.noodles;
+  }
+  updateEggSprite();
+  updateIngredientStockUI();
+  setCookingSlide(cookingSlide);
+}
+
+function clearPot() {
+  if (potStartStock) {
+    Object.assign(ingredientStock, potStartStock);
+    document.getElementById('ing-rice').src = potStartSprites.rice;
+    document.getElementById('ing-noodles').src = potStartSprites.noodles;
+    updateEggSprite();
+    updateIngredientStockUI();
+    setCookingSlide(cookingSlide);
+  }
+  document.getElementById('pot-contents').innerHTML = '';
+  document.getElementById('pot-contents').style.display = '';
+  document.getElementById('cooking-pot').src = 'assets/cooking/pot_open.png';
+  document.getElementById('cooking-bar-wrap').classList.remove('active');
+  potStartStock = null;
+  potStartSprites = null;
+  potIngredients = [];
+}
+
+function serveSuccessfulDish() {
+  if (!successfulDishReady || servingInProgress || dayEnded) return;
+  const orderBox = document.getElementById('order-box-wrap');
+  orderBox.classList.add('hidden');
+  orderBox.style.pointerEvents = 'none';
+  orderBox.onclick = null;
+  successfulDishReady = false;
+  const correct = preparedDishKey && currentOrderDish && preparedDishKey === currentOrderDish.key;
+  if (correct) {
+    money += currentOrderDish.price;
+    dayEarned += currentOrderDish.price;
+    totalEarned += currentOrderDish.price;
+    totalSatisfied++;
+    updateMoneyHud();
+  } else {
+    wrongDishesServed++;
+    totalAngry++;
+  }
+  totalCustomersServed++;
+  showCustomerReaction(correct);
+}
+
+function findDishKey(ingredients) {
+  const actual = ingredients.map(canonicalIngredient).sort().join('|');
+  const match = DISH_RECIPES.find(dish =>
+    [...dish.ingredients, dish.base].map(canonicalIngredient).sort().join('|') === actual
+  );
+  return match ? match.key : null;
+}
+
+function showCustomerReaction(correct) {
+  servingInProgress = true;
+  const bg = document.getElementById('customer-reaction-bg');
+  const dish = document.getElementById('customer-reaction-dish');
+  bg.src = correct ? 'assets/serving/order_status.png' : 'assets/serving/angry.png';
+  dish.src = correct ? `assets/cooking/dishes/${currentOrderDish.key}.png` : '';
+  dish.style.display = correct ? '' : 'none';
+  document.getElementById('customer-reaction').classList.remove('hidden');
+  setTimeout(advanceCustomerQueue, 3000);
+}
+
+function advanceCustomerQueue() {
+  if (dayEnded) return;
+  document.getElementById('customer-reaction').classList.add('hidden');
+  const active = document.getElementById('customer-active');
+  const next = document.getElementById('customer-next');
+  // Do not let the one-time entrance animation compete with the queue
+  // transition when this element is reused for a later customer.
+  active.classList.remove('slide-in');
+  next.classList.remove('slide-in');
+  active.classList.add('customer-slide-away');
+  next.classList.add('customer-promote');
+
+  setTimeout(() => {
+    const promotedType = nextCustomerType;
+    active.classList.remove('customer-slide-away');
+    clearCustomerSlot(active);
+    if (promotedType) {
+      _activeCustomerType = promotedType;
+      _startToggle(active, promotedType);
+    }
+
+    clearCustomerSlot(next);
+    next.classList.remove('customer-promote');
+    if (customersSpawned < customersPerDay()) {
+      nextCustomerType = _randomType();
+      customersSpawned++;
+      _startToggle(next, nextCustomerType);
+    } else {
+      nextCustomerType = null;
+    }
+
+    customersServed++;
+    servingInProgress = false;
+    preparedDishKey = null;
+    potIngredients = [];
+    if (customersServed >= customersPerDay()) {
+      dayEnded = true;
+      fadeToScene('day-summary-screen', renderDaySummary);
+      return;
+    }
+    showOrderBox(_activeCustomerType, false);
+  }, 650);
+}
+
+function updateIngredientStockUI() {
+  document.querySelectorAll('.ing-hover-hit, .base-hover-hit').forEach(hit => {
+    const name = hit.id === 'hit-rice'
+      ? 'rice'
+      : hit.id === 'hit-noodles'
+        ? 'noodles'
+        : hit.id === 'hit-egg'
+          ? 'egg'
+        : currentCookingIngredients()[Number(hit.id.slice(-1)) - 1];
+    const count = hit.querySelector('.ingredient-count');
+    if (!name) {
+      count.style.display = 'none';
+      return;
+    }
+    count.style.display = '';
+    count.textContent = ingredientStock[name];
+    hit.classList.toggle('depleted', ingredientStock[name] === 0);
+  });
+}
+
+function setCookingSlide(n) {
+  cookingSlide = n;
+  // Show/hide slide-2 and slide-3 elements
+  document.querySelectorAll('.ing-s2').forEach(el => el.style.display = n === 2 ? 'block' : 'none');
+  document.querySelectorAll('.ing-s3').forEach(el => el.style.display = n === 3 ? 'block' : 'none');
+  // Slide 1 elements (no class) — hide when not slide 1
+  const s1els = ['ing-mushrooms','ing-broccoli','ing-tofu','cooking-next1','hit-cooking-next1'];
+  s1els.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = n === 1 ? '' : 'none';
+  });
+  document.querySelectorAll('.ing-img').forEach(el => {
+    if (ingredientStock[el.id.replace('ing-', '')] === 0) el.style.display = 'none';
+  });
+  updateIngredientStockUI();
 }
 
 function _randomType() {
@@ -1531,6 +2601,7 @@ function _randomType() {
 }
 
 function _startToggle(slot, type) {
+  if (slot._spriteTimer) clearInterval(slot._spriteTimer);
   let f = 1;
   const img = document.createElement("img");
   img.src = `assets/customers/${type}_1.png`;
@@ -1541,23 +2612,40 @@ function _startToggle(slot, type) {
     f = f === 1 ? 2 : 1;
     img.src = `assets/customers/${type}_${f}.png`;
   }, 400);
-  _spriteTimers.push(t);
+  slot._spriteTimer = t;
+}
+
+function clearCustomerSlot(slot) {
+  if (slot._spriteTimer) {
+    clearInterval(slot._spriteTimer);
+    slot._spriteTimer = null;
+  }
+  slot.innerHTML = "";
 }
 
 document.addEventListener("newCustomer", () => {
   const active = document.getElementById("customer-active");
   const next = document.getElementById("customer-next");
 
+  customersSpawned = 2;
+  customersServed = 0;
+  wrongDishesServed = 0;
+  dayEnded = false;
+  nextCustomerType = _randomType();
   _activeCustomerType = _randomType();
   _startToggle(active, _activeCustomerType);
   active.classList.remove("slide-in");
   void active.offsetWidth; // reflow to restart animation
   active.classList.add("slide-in");
+  active.addEventListener("animationend", () => {
+    active.classList.remove("slide-in");
+  }, { once: true });
 
-  _startToggle(next, _randomType());
+  _startToggle(next, nextCustomerType);
 });
 
 /* ─────────────────────────────────────────────
    INITIALISE
 ───────────────────────────────────────────── */
 loadSettings();
+updateMoneyHud();
